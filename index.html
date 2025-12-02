@@ -1,15 +1,59 @@
+
 <!DOCTYPE html>
 <html>
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  <title>replit</title>
+  <title>Animation Studio</title>
   <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
 
 <body>
-  Hello world
+  <div class="container">
+    <header>
+      <h1>Animation Studio</h1>
+      <div class="toolbar">
+        <button id="pencilBtn" class="tool-btn active">✏️ Pencil</button>
+        <button id="eraserBtn" class="tool-btn">🧹 Eraser</button>
+        <button id="clearBtn" class="tool-btn">🗑️ Clear</button>
+        <input type="color" id="colorPicker" value="#000000">
+        <input type="range" id="brushSize" min="1" max="20" value="3">
+        <span id="brushSizeLabel">3px</span>
+      </div>
+      <div class="file-controls">
+        <button id="saveBtn">💾 Save Project</button>
+        <button id="loadBtn">📂 Load Project</button>
+        <button id="exportBtn">📥 Export GIF</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="canvas-container">
+        <canvas id="drawCanvas"></canvas>
+      </div>
+
+      <div class="animation-controls">
+        <div class="playback">
+          <button id="playBtn">▶️ Play</button>
+          <button id="stopBtn">⏹️ Stop</button>
+          <label>FPS: <input type="number" id="fpsInput" value="12" min="1" max="60"></label>
+        </div>
+
+        <div class="frame-controls">
+          <button id="addFrameBtn">➕ Add Frame</button>
+          <button id="deleteFrameBtn">🗑️ Delete Frame</button>
+          <button id="duplicateFrameBtn">📋 Duplicate</button>
+          <label>
+            <input type="checkbox" id="onionSkin"> Onion Skin
+          </label>
+        </div>
+
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </main>
+  </div>
+
   <script src="script.js"></script>
 </body>
 
