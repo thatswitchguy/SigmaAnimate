@@ -48,10 +48,82 @@ class AnimationStudio {
     this.isSelecting = false;
     
     this.initializeEventListeners();
+    this.initializeResizers();
     this.render();
     this.updateTimeline();
     // Set initial cursor after a small delay to ensure canvas is ready
     setTimeout(() => this.setTool('pencil'), 0);
+  }
+  
+  initializeResizers() {
+    // Sidebar resizer
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarResizer = document.getElementById('sidebarResizer');
+    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+    
+    let isResizingSidebar = false;
+    
+    sidebarResizer.addEventListener('mousedown', (e) => {
+      isResizingSidebar = true;
+      document.body.style.cursor = 'ew-resize';
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isResizingSidebar) {
+        const newWidth = e.clientX;
+        if (newWidth >= 150 && newWidth <= 400) {
+          sidebar.style.width = newWidth + 'px';
+        }
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isResizingSidebar) {
+        isResizingSidebar = false;
+        document.body.style.cursor = '';
+      }
+    });
+    
+    sidebarCollapseBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      sidebarCollapseBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+    });
+    
+    // Animation controls resizer
+    const animationControls = document.querySelector('.animation-controls');
+    const animationResizer = document.getElementById('animationResizer');
+    const animationCollapseBtn = document.getElementById('animationCollapseBtn');
+    
+    let isResizingAnimation = false;
+    
+    animationResizer.addEventListener('mousedown', (e) => {
+      isResizingAnimation = true;
+      document.body.style.cursor = 'ns-resize';
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isResizingAnimation) {
+        const rect = animationControls.getBoundingClientRect();
+        const newHeight = rect.bottom - e.clientY;
+        if (newHeight >= 100 && newHeight <= 600) {
+          animationControls.style.height = newHeight + 'px';
+        }
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isResizingAnimation) {
+        isResizingAnimation = false;
+        document.body.style.cursor = '';
+      }
+    });
+    
+    animationCollapseBtn.addEventListener('click', () => {
+      animationControls.classList.toggle('collapsed');
+      animationCollapseBtn.textContent = animationControls.classList.contains('collapsed') ? '▲' : '▼';
+    });
   }
   
   createEmptyFrame() {
