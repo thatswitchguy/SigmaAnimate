@@ -50,6 +50,7 @@ class AnimationStudio {
     this.initializeEventListeners();
     this.render();
     this.updateTimeline();
+    this.setTool('pencil'); // Set initial cursor
   }
   
   createEmptyFrame() {
@@ -207,14 +208,22 @@ class AnimationStudio {
   setTool(tool) {
     this.tool = tool;
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Remove all cursor classes
+    this.canvas.classList.remove('cursor-pencil', 'cursor-mouse', 'cursor-fill', 'cursor-eraser');
+    
     if (tool === 'pencil') {
       document.getElementById('pencilBtn').classList.add('active');
+      this.canvas.classList.add('cursor-pencil');
     } else if (tool === 'mouse') {
       document.getElementById('smartDrawBtn').classList.add('active');
+      this.canvas.classList.add('cursor-mouse');
     } else if (tool === 'fill') {
       document.getElementById('fillBtn').classList.add('active');
+      this.canvas.classList.add('cursor-fill');
     } else if (tool === 'eraser') {
       document.getElementById('eraserBtn').classList.add('active');
+      this.canvas.classList.add('cursor-eraser');
     }
   }
   

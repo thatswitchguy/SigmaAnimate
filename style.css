@@ -310,6 +310,22 @@ input[type="checkbox"] {
   cursor: crosshair;
 }
 
+#drawCanvas.cursor-pencil {
+  cursor: crosshair;
+}
+
+#drawCanvas.cursor-mouse {
+  cursor: default;
+}
+
+#drawCanvas.cursor-fill {
+  cursor: pointer;
+}
+
+#drawCanvas.cursor-eraser {
+  cursor: cell;
+}
+
 .animation-controls {
   background: #2d2d2d;
   border-top: 2px solid #444;
