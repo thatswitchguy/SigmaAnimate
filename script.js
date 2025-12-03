@@ -17,6 +17,8 @@ class AnimationStudio {
     this.animationInterval = null;
     this.onionSkinEnabled = false;
     this.smartDrawEnabled = true;
+    this.backgroundColor = '#ffffff';
+    this.backgroundImage = null;
     
     this.lastX = 0;
     this.lastY = 0;
@@ -135,6 +137,23 @@ class AnimationStudio {
     
     document.getElementById('smartDrawToggle').addEventListener('change', (e) => {
       this.smartDrawEnabled = e.target.checked;
+    });
+    
+    // Background controls
+    document.getElementById('backgroundColorPicker').addEventListener('change', (e) => {
+      this.backgroundColor = e.target.value;
+      this.render();
+    });
+    
+    document.getElementById('uploadBackgroundBtn').addEventListener('click', () => {
+      document.getElementById('backgroundUpload').click();
+    });
+    
+    document.getElementById('backgroundUpload').addEventListener('change', (e) => this.uploadBackground(e));
+    
+    document.getElementById('clearBackgroundBtn').addEventListener('click', () => {
+      this.backgroundImage = null;
+      this.render();
     });
     
     // File controls
@@ -597,6 +616,22 @@ class AnimationStudio {
     reader.readAsDataURL(file);
   }
   
+  uploadBackground(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        this.backgroundImage = img;
+        this.render();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  
   insertShape(shape) {
     this.selectedShape = shape;
     this.drawShape(shape, this.shapeWidth, this.shapeHeight);
@@ -743,6 +778,14 @@ class AnimationStudio {
   
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Draw background
+    if (this.backgroundImage) {
+      this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+    } else {
+      this.ctx.fillStyle = this.backgroundColor;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
     
     // Onion skin - show light silhouette of previous frame (only when not playing)
     if (this.onionSkinEnabled && this.currentFrameIndex > 0 && !this.isPlaying) {
@@ -981,7 +1024,9 @@ class AnimationStudio {
         width: this.canvas.width,
         height: this.canvas.height,
         fps: this.fps,
-        frames: this.frames
+        frames: this.frames,
+        backgroundColor: this.backgroundColor,
+        backgroundImageSrc: this.backgroundImage ? this.backgroundImage.src : null
       };
       
       const dataStr = JSON.stringify(projectData);
@@ -1010,6 +1055,21 @@ class AnimationStudio {
       this.frames = projectData.frames;
       this.currentFrameIndex = 0;
       this.selectedObjects = [];
+      
+      this.backgroundColor = projectData.backgroundColor || '#ffffff';
+      document.getElementById('backgroundColorPicker').value = this.backgroundColor;
+      
+      if (projectData.backgroundImageSrc) {
+        const img = new Image();
+        img.onload = () => {
+          this.backgroundImage = img;
+          this.render();
+        };
+        img.src = projectData.backgroundImageSrc;
+      } else {
+        this.backgroundImage = null;
+      }
+      
       this.updateTimeline();
       this.render();
       alert('Project loaded successfully!');
@@ -1023,7 +1083,9 @@ class AnimationStudio {
       width: this.canvas.width,
       height: this.canvas.height,
       fps: this.fps,
-      frames: this.frames
+      frames: this.frames,
+      backgroundColor: this.backgroundColor,
+      backgroundImageSrc: this.backgroundImage ? this.backgroundImage.src : null
     };
     
     const dataStr = JSON.stringify(projectData);
@@ -1060,6 +1122,21 @@ class AnimationStudio {
           this.frames = projectData.frames;
           this.currentFrameIndex = 0;
           this.selectedObjects = [];
+          
+          this.backgroundColor = projectData.backgroundColor || '#ffffff';
+          document.getElementById('backgroundColorPicker').value = this.backgroundColor;
+          
+          if (projectData.backgroundImageSrc) {
+            const img = new Image();
+            img.onload = () => {
+              this.backgroundImage = img;
+              this.render();
+            };
+            img.src = projectData.backgroundImageSrc;
+          } else {
+            this.backgroundImage = null;
+          }
+          
           this.updateTimeline();
           this.render();
         } catch (error) {
@@ -1160,8 +1237,16 @@ class AnimationStudio {
       const recordInterval = setInterval(() => {
         this.currentFrameIndex = frameIndex;
         
-        // Clear and render frame
+        // Clear and render frame with background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw background
+        if (this.backgroundImage) {
+          this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+        } else {
+          this.ctx.fillStyle = this.backgroundColor;
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         
         // Render each object in the frame
         for (const obj of this.frames[this.currentFrameIndex].objects) {
