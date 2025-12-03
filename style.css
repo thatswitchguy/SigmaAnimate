@@ -388,8 +388,9 @@ input[type="checkbox"] {
   cursor: crosshair;
   max-width: calc(100vw - 250px);
   max-height: calc(100vh - 350px);
-  width: auto;
-  height: auto;
+  width: 800px;
+  height: 600px;
+  image-rendering: crisp-edges;
 }
 
 #drawCanvas.cursor-pencil {
