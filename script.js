@@ -744,8 +744,8 @@ class AnimationStudio {
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Onion skin - show light silhouette of previous frame
-    if (this.onionSkinEnabled && this.currentFrameIndex > 0) {
+    // Onion skin - show light silhouette of previous frame (only when not playing)
+    if (this.onionSkinEnabled && this.currentFrameIndex > 0 && !this.isPlaying) {
       this.ctx.save();
       this.ctx.globalAlpha = 0.2;
       this.ctx.strokeStyle = '#888888';
