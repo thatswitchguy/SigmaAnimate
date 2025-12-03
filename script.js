@@ -235,7 +235,6 @@ class AnimationStudio {
     // File controls
     document.getElementById('cloudSaveBtn').addEventListener('click', () => this.saveToCloud());
     document.getElementById('cloudLoadBtn').addEventListener('click', () => this.loadFromCloud());
-    document.getElementById('downloadBtn').addEventListener('click', () => this.downloadProject());
     document.getElementById('loadBtn').addEventListener('click', () => this.loadProject());
     document.getElementById('exportBtn').addEventListener('click', () => this.exportGIF());
     
