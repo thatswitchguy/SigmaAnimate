@@ -747,6 +747,10 @@ class AnimationStudio {
       img.onload = () => {
         this.backgroundImage = img;
         this.render();
+        this.updateTimeline();
+      };
+      img.onerror = () => {
+        alert('Error loading background image');
       };
       img.src = event.target.result;
     };
@@ -779,6 +783,15 @@ class AnimationStudio {
   addObject(obj) {
     if (obj.rotation === undefined) {
       obj.rotation = 0;
+    }
+    // Pre-load image if it's an image object
+    if (obj.type === 'image' && obj.src && !obj.imageElement) {
+      const img = new Image();
+      img.onload = () => {
+        obj.imageElement = img;
+        this.render();
+      };
+      img.src = obj.src;
     }
     this.getCurrentFrameObjects().push(obj);
   }
@@ -1087,9 +1100,17 @@ class AnimationStudio {
       }
       ctx.stroke();
     } else if (obj.type === 'image') {
-      const img = new Image();
-      img.src = obj.src;
-      ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+      if (obj.imageElement) {
+        ctx.drawImage(obj.imageElement, obj.x, obj.y, obj.width, obj.height);
+      } else if (obj.src) {
+        // Fallback: create and cache the image element
+        const img = new Image();
+        img.onload = () => {
+          obj.imageElement = img;
+          this.render();
+        };
+        img.src = obj.src;
+      }
     } else if (obj.type === 'group') {
       for (const child of obj.children) {
         this.renderObject(child, ctx);
@@ -1243,19 +1264,43 @@ class AnimationStudio {
       this.backgroundColor = projectData.backgroundColor || '#ffffff';
       document.getElementById('backgroundColorPicker').value = this.backgroundColor;
       
+      // Pre-load all images in frames
+      const imageLoadPromises = [];
+      for (const frame of this.frames) {
+        for (const obj of frame.objects) {
+          if (obj.type === 'image' && obj.src && !obj.imageElement) {
+            const promise = new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                obj.imageElement = img;
+                resolve();
+              };
+              img.onerror = () => resolve();
+              img.src = obj.src;
+            });
+            imageLoadPromises.push(promise);
+          }
+        }
+      }
+      
       if (projectData.backgroundImageSrc) {
         const img = new Image();
         img.onload = () => {
           this.backgroundImage = img;
-          this.render();
+          Promise.all(imageLoadPromises).then(() => {
+            this.updateTimeline();
+            this.render();
+          });
         };
         img.src = projectData.backgroundImageSrc;
       } else {
         this.backgroundImage = null;
+        Promise.all(imageLoadPromises).then(() => {
+          this.updateTimeline();
+          this.render();
+        });
       }
       
-      this.updateTimeline();
-      this.render();
       alert('Project loaded successfully!');
     } catch (error) {
       alert('Error loading: ' + error.message);
