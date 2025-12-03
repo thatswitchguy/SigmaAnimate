@@ -39,9 +39,11 @@ class AnimationStudio {
     this.selectedObjects = [];
     this.isDragging = false;
     this.isResizing = false;
+    this.isRotating = false;
     this.dragStartX = 0;
     this.dragStartY = 0;
     this.resizeHandle = null;
+    this.rotationHandle = null;
     this.selectionBox = null;
     this.isSelecting = false;
     
@@ -178,6 +180,13 @@ class AnimationStudio {
     document.getElementById('ungroupBtn').addEventListener('click', () => this.ungroupSelectedObjects());
     document.getElementById('deleteSelectedBtn').addEventListener('click', () => this.deleteSelectedObjects());
     
+    // Rotation controls
+    document.getElementById('rotationInput').addEventListener('input', (e) => {
+      const angle = parseInt(e.target.value);
+      document.getElementById('rotationValue').textContent = angle + '°';
+      this.applyRotation(angle);
+    });
+    
     // Resize controls
     document.getElementById('shapeWidth').addEventListener('input', (e) => {
       this.shapeWidth = parseInt(e.target.value);
@@ -227,6 +236,14 @@ class AnimationStudio {
     }
     
     if (this.tool === 'mouse') {
+      // Check if clicking on rotation handle
+      if (this.getRotationHandle(pos.x, pos.y) && this.selectedObjects.length === 1) {
+        this.isRotating = true;
+        this.dragStartX = pos.x;
+        this.dragStartY = pos.y;
+        return;
+      }
+      
       // Check if clicking on resize handle
       const handle = this.getResizeHandle(pos.x, pos.y);
       if (handle && this.selectedObjects.length === 1) {
@@ -286,6 +303,19 @@ class AnimationStudio {
     const pos = this.getMousePos(e);
     
     if (this.tool === 'mouse') {
+      if (this.isRotating && this.selectedObjects.length === 1) {
+        const obj = this.selectedObjects[0];
+        const centerX = obj.x + obj.width / 2;
+        const centerY = obj.y + obj.height / 2;
+        
+        const angle = Math.atan2(pos.y - centerY, pos.x - centerX) * 180 / Math.PI;
+        obj.rotation = angle + 90;
+        
+        document.getElementById('rotationInput').value = Math.round(obj.rotation);
+        this.render();
+        return;
+      }
+      
       if (this.isResizing && this.selectedObjects.length === 1) {
         const obj = this.selectedObjects[0];
         const dx = pos.x - this.dragStartX;
@@ -364,6 +394,12 @@ class AnimationStudio {
   
   stopDrawing() {
     if (this.tool === 'mouse') {
+      if (this.isRotating) {
+        this.isRotating = false;
+        this.saveCurrentFrame();
+        return;
+      }
+      
       if (this.isResizing) {
         this.isResizing = false;
         this.resizeHandle = null;
@@ -656,6 +692,9 @@ class AnimationStudio {
   }
   
   addObject(obj) {
+    if (obj.rotation === undefined) {
+      obj.rotation = 0;
+    }
     this.getCurrentFrameObjects().push(obj);
   }
   
@@ -704,6 +743,22 @@ class AnimationStudio {
     }
     
     return null;
+  }
+  
+  getRotationHandle(x, y) {
+    if (this.selectedObjects.length !== 1) return null;
+    
+    const obj = this.selectedObjects[0];
+    const handleSize = 8;
+    const rotateHandleY = obj.y - 20;
+    const rotateHandleX = obj.x + obj.width / 2;
+    
+    if (x >= rotateHandleX - handleSize && x <= rotateHandleX + handleSize &&
+        y >= rotateHandleY - handleSize && y <= rotateHandleY + handleSize) {
+      return true;
+    }
+    
+    return false;
   }
   
   groupSelectedObjects() {
@@ -768,6 +823,17 @@ class AnimationStudio {
       }
     }
     this.selectedObjects = [];
+    this.saveCurrentFrame();
+    this.render();
+  }
+  
+  applyRotation(angle) {
+    if (this.selectedObjects.length === 0) return;
+    
+    for (const obj of this.selectedObjects) {
+      obj.rotation = angle;
+    }
+    
     this.saveCurrentFrame();
     this.render();
   }
@@ -848,6 +914,21 @@ class AnimationStudio {
         for (const handle of handles) {
           this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         }
+        
+        // Draw rotation handle
+        const rotateHandleY = obj.y - 20;
+        const rotateHandleX = obj.x + obj.width / 2;
+        this.ctx.beginPath();
+        this.ctx.arc(rotateHandleX, rotateHandleY, handleSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw line connecting rotation handle
+        this.ctx.strokeStyle = '#0078d4';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(rotateHandleX, rotateHandleY);
+        this.ctx.lineTo(obj.x + obj.width / 2, obj.y);
+        this.ctx.stroke();
       }
     }
   }
@@ -859,6 +940,15 @@ class AnimationStudio {
   }
   
   renderObject(obj) {
+    const rotation = obj.rotation || 0;
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    
+    this.ctx.save();
+    this.ctx.translate(centerX, centerY);
+    this.ctx.rotate(rotation * Math.PI / 180);
+    this.ctx.translate(-centerX, -centerY);
+    
     if (obj.type === 'circle') {
       const currentStroke = this.ctx.strokeStyle;
       const currentFill = this.ctx.fillStyle;
@@ -920,6 +1010,8 @@ class AnimationStudio {
         this.renderObject(child);
       }
     }
+    
+    this.ctx.restore();
   }
   
   addFrame() {
@@ -1274,6 +1366,15 @@ class AnimationStudio {
   }
   
   renderObjectForExport(obj) {
+    const rotation = obj.rotation || 0;
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    
+    this.ctx.save();
+    this.ctx.translate(centerX, centerY);
+    this.ctx.rotate(rotation * Math.PI / 180);
+    this.ctx.translate(-centerX, -centerY);
+    
     if (obj.type === 'circle') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
@@ -1327,6 +1428,8 @@ class AnimationStudio {
         this.renderObjectForExport(child);
       }
     }
+    
+    this.ctx.restore();
   }
 }
 
