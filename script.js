@@ -24,6 +24,13 @@ class AnimationStudio {
     this.shapeWidth = 100;
     this.shapeHeight = 100;
     
+    // Smart draw properties
+    this.drawPoints = [];
+    this.tempCanvas = document.createElement('canvas');
+    this.tempCanvas.width = this.canvas.width;
+    this.tempCanvas.height = this.canvas.height;
+    this.tempCtx = this.tempCanvas.getContext('2d');
+    
     this.initializeEventListeners();
     this.render();
     this.updateTimeline();
@@ -72,6 +79,8 @@ class AnimationStudio {
     
     // Tool buttons
     document.getElementById('pencilBtn').addEventListener('click', () => this.setTool('pencil'));
+    document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('smartdraw'));
+    document.getElementById('fillBtn').addEventListener('click', () => this.setTool('fill'));
     document.getElementById('eraserBtn').addEventListener('click', () => this.setTool('eraser'));
     document.getElementById('clearBtn').addEventListener('click', () => this.clearFrame());
     
@@ -144,6 +153,10 @@ class AnimationStudio {
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     if (tool === 'pencil') {
       document.getElementById('pencilBtn').classList.add('active');
+    } else if (tool === 'smartdraw') {
+      document.getElementById('smartDrawBtn').classList.add('active');
+    } else if (tool === 'fill') {
+      document.getElementById('fillBtn').classList.add('active');
     } else if (tool === 'eraser') {
       document.getElementById('eraserBtn').classList.add('active');
     }
@@ -158,16 +171,54 @@ class AnimationStudio {
   }
   
   startDrawing(e) {
-    this.isDrawing = true;
     const pos = this.getMousePos(e);
+    
+    if (this.tool === 'fill') {
+      this.floodFill(Math.floor(pos.x), Math.floor(pos.y));
+      this.saveCurrentFrame();
+      return;
+    }
+    
+    this.isDrawing = true;
     this.lastX = pos.x;
     this.lastY = pos.y;
+    
+    if (this.tool === 'smartdraw') {
+      this.drawPoints = [{ x: pos.x, y: pos.y }];
+      this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    }
   }
   
   draw(e) {
     if (!this.isDrawing) return;
     
     const pos = this.getMousePos(e);
+    
+    if (this.tool === 'smartdraw') {
+      this.drawPoints.push({ x: pos.x, y: pos.y });
+      
+      // Draw temporary preview
+      this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+      this.tempCtx.strokeStyle = this.color;
+      this.tempCtx.lineWidth = this.brushSize;
+      this.tempCtx.lineCap = 'round';
+      this.tempCtx.lineJoin = 'round';
+      this.tempCtx.globalCompositeOperation = 'source-over';
+      
+      this.tempCtx.beginPath();
+      this.tempCtx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
+      for (let i = 1; i < this.drawPoints.length; i++) {
+        this.tempCtx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
+      }
+      this.tempCtx.stroke();
+      
+      // Overlay temp canvas on main canvas
+      const currentFrame = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.putImageData(currentFrame, 0, 0);
+      this.ctx.drawImage(this.tempCanvas, 0, 0);
+      
+      return;
+    }
     
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
@@ -192,8 +243,152 @@ class AnimationStudio {
   stopDrawing() {
     if (this.isDrawing) {
       this.isDrawing = false;
+      
+      if (this.tool === 'smartdraw' && this.drawPoints.length > 2) {
+        this.recognizeAndDrawShape();
+      }
+      
       this.saveCurrentFrame();
     }
+  }
+  
+  recognizeAndDrawShape() {
+    if (this.drawPoints.length < 5) return;
+    
+    const firstPoint = this.drawPoints[0];
+    const lastPoint = this.drawPoints[this.drawPoints.length - 1];
+    
+    // Check if it's a closed shape (circle)
+    const distance = Math.sqrt(
+      Math.pow(lastPoint.x - firstPoint.x, 2) + 
+      Math.pow(lastPoint.y - firstPoint.y, 2)
+    );
+    
+    if (distance < 30 && this.drawPoints.length > 10) {
+      // Likely a circle
+      const centerX = this.drawPoints.reduce((sum, p) => sum + p.x, 0) / this.drawPoints.length;
+      const centerY = this.drawPoints.reduce((sum, p) => sum + p.y, 0) / this.drawPoints.length;
+      const radius = this.drawPoints.reduce((sum, p) => {
+        return sum + Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2));
+      }, 0) / this.drawPoints.length;
+      
+      this.ctx.globalCompositeOperation = 'source-over';
+      this.ctx.strokeStyle = this.color;
+      this.ctx.lineWidth = this.brushSize;
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    } else {
+      // Check if it's a straight line
+      const isLine = this.isApproximatelyLine();
+      
+      if (isLine) {
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.strokeStyle = this.color;
+        this.ctx.lineWidth = this.brushSize;
+        this.ctx.lineCap = 'round';
+        this.ctx.beginPath();
+        this.ctx.moveTo(firstPoint.x, firstPoint.y);
+        this.ctx.lineTo(lastPoint.x, lastPoint.y);
+        this.ctx.stroke();
+      } else {
+        // Draw as freehand
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.strokeStyle = this.color;
+        this.ctx.lineWidth = this.brushSize;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
+        for (let i = 1; i < this.drawPoints.length; i++) {
+          this.ctx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
+        }
+        this.ctx.stroke();
+      }
+    }
+    
+    this.drawPoints = [];
+  }
+  
+  isApproximatelyLine() {
+    if (this.drawPoints.length < 5) return false;
+    
+    const firstPoint = this.drawPoints[0];
+    const lastPoint = this.drawPoints[this.drawPoints.length - 1];
+    
+    // Calculate the ideal line
+    const dx = lastPoint.x - firstPoint.x;
+    const dy = lastPoint.y - firstPoint.y;
+    const lineLength = Math.sqrt(dx * dx + dy * dy);
+    
+    if (lineLength < 20) return false;
+    
+    // Check how much points deviate from the line
+    let maxDeviation = 0;
+    for (const point of this.drawPoints) {
+      const deviation = Math.abs(
+        (dy * point.x - dx * point.y + lastPoint.x * firstPoint.y - lastPoint.y * firstPoint.x) / lineLength
+      );
+      maxDeviation = Math.max(maxDeviation, deviation);
+    }
+    
+    return maxDeviation < 15;
+  }
+  
+  floodFill(startX, startY) {
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const pixels = imageData.data;
+    
+    // Convert hex color to RGB
+    const r = parseInt(this.color.substr(1, 2), 16);
+    const g = parseInt(this.color.substr(3, 2), 16);
+    const b = parseInt(this.color.substr(5, 2), 16);
+    
+    const getPixelIndex = (x, y) => (y * this.canvas.width + x) * 4;
+    
+    const startIndex = getPixelIndex(startX, startY);
+    const targetR = pixels[startIndex];
+    const targetG = pixels[startIndex + 1];
+    const targetB = pixels[startIndex + 2];
+    const targetA = pixels[startIndex + 3];
+    
+    // Don't fill if clicking on the same color
+    if (targetR === r && targetG === g && targetB === b) return;
+    
+    const pixelsToFill = [[startX, startY]];
+    const visited = new Set();
+    
+    while (pixelsToFill.length > 0) {
+      const [x, y] = pixelsToFill.pop();
+      const key = `${x},${y}`;
+      
+      if (visited.has(key)) continue;
+      if (x < 0 || x >= this.canvas.width || y < 0 || y >= this.canvas.height) continue;
+      
+      visited.add(key);
+      
+      const index = getPixelIndex(x, y);
+      const currentR = pixels[index];
+      const currentG = pixels[index + 1];
+      const currentB = pixels[index + 2];
+      const currentA = pixels[index + 3];
+      
+      if (currentR !== targetR || currentG !== targetG || currentB !== targetB || currentA !== targetA) {
+        continue;
+      }
+      
+      pixels[index] = r;
+      pixels[index + 1] = g;
+      pixels[index + 2] = b;
+      pixels[index + 3] = 255;
+      
+      pixelsToFill.push([x + 1, y]);
+      pixelsToFill.push([x - 1, y]);
+      pixelsToFill.push([x, y + 1]);
+      pixelsToFill.push([x, y - 1]);
+    }
+    
+    this.ctx.putImageData(imageData, 0, 0);
   }
   
   clearFrame() {
