@@ -1121,7 +1121,10 @@ class AnimationStudio {
 
       const recordInterval = setInterval(() => {
         this.currentFrameIndex = frameIndex;
-        this.render();
+        
+        // Render frame directly to canvas without updating timeline
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.renderFrame(this.frames[this.currentFrameIndex]);
         
         frameIndex++;
         if (frameIndex >= this.frames.length) {
