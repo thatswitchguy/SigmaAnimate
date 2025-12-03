@@ -14,8 +14,8 @@
     <header>
       <h1>Animation Studio</h1>
       <div class="toolbar">
-        <button id="pencilBtn" class="tool-btn active">✏️ Pencil</button>
-        <button id="smartDrawBtn" class="tool-btn">✨ Smart Draw</button>
+        <button id="pencilBtn" class="tool-btn active">✏️ Pencil (Smart Draw)</button>
+        <button id="smartDrawBtn" class="tool-btn">🖱️ Mouse</button>
         <button id="fillBtn" class="tool-btn">🪣 Fill</button>
         <button id="eraserBtn" class="tool-btn">🧹 Eraser</button>
         <button id="clearBtn" class="tool-btn">🗑️ Clear</button>
@@ -48,6 +48,13 @@
             <label>Width: <input type="number" id="shapeWidth" min="10" max="500" value="100"></label>
             <label>Height: <input type="number" id="shapeHeight" min="10" max="500" value="100"></label>
             <button id="applyResize">Apply</button>
+          </div>
+          
+          <div class="selection-controls" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
+            <h4>Selection</h4>
+            <button id="groupBtn" class="insert-btn">🔗 Group</button>
+            <button id="ungroupBtn" class="insert-btn">🔓 Ungroup</button>
+            <button id="deleteSelectedBtn" class="insert-btn">🗑️ Delete</button>
           </div>
         </div>
         

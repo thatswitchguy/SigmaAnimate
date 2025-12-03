@@ -31,16 +31,24 @@ class AnimationStudio {
     this.tempCanvas.height = this.canvas.height;
     this.tempCtx = this.tempCanvas.getContext('2d');
     
+    // Object system for movable/resizable shapes
+    this.objects = [];
+    this.selectedObjects = [];
+    this.isDragging = false;
+    this.isResizing = false;
+    this.dragStartX = 0;
+    this.dragStartY = 0;
+    this.resizeHandle = null;
+    this.selectionBox = null;
+    this.isSelecting = false;
+    
     this.initializeEventListeners();
     this.render();
     this.updateTimeline();
   }
   
   createEmptyFrame() {
-    const canvas = document.createElement('canvas');
-    canvas.width = this.canvas.width;
-    canvas.height = this.canvas.height;
-    return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+    return { objects: [] };
   }
   
   initializeEventListeners() {
@@ -79,7 +87,7 @@ class AnimationStudio {
     
     // Tool buttons
     document.getElementById('pencilBtn').addEventListener('click', () => this.setTool('pencil'));
-    document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('smartdraw'));
+    document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('mouse'));
     document.getElementById('fillBtn').addEventListener('click', () => this.setTool('fill'));
     document.getElementById('eraserBtn').addEventListener('click', () => this.setTool('eraser'));
     document.getElementById('clearBtn').addEventListener('click', () => this.clearFrame());
@@ -131,6 +139,11 @@ class AnimationStudio {
     document.getElementById('squareBtn').addEventListener('click', () => this.insertShape('square'));
     document.getElementById('triangleBtn').addEventListener('click', () => this.insertShape('triangle'));
     
+    // Group/Ungroup controls
+    document.getElementById('groupBtn').addEventListener('click', () => this.groupSelectedObjects());
+    document.getElementById('ungroupBtn').addEventListener('click', () => this.ungroupSelectedObjects());
+    document.getElementById('deleteSelectedBtn').addEventListener('click', () => this.deleteSelectedObjects());
+    
     // Resize controls
     document.getElementById('shapeWidth').addEventListener('input', (e) => {
       this.shapeWidth = parseInt(e.target.value);
@@ -153,7 +166,7 @@ class AnimationStudio {
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     if (tool === 'pencil') {
       document.getElementById('pencilBtn').classList.add('active');
-    } else if (tool === 'smartdraw') {
+    } else if (tool === 'mouse') {
       document.getElementById('smartDrawBtn').classList.add('active');
     } else if (tool === 'fill') {
       document.getElementById('fillBtn').classList.add('active');
@@ -179,81 +192,210 @@ class AnimationStudio {
       return;
     }
     
+    if (this.tool === 'mouse') {
+      // Check if clicking on resize handle
+      const handle = this.getResizeHandle(pos.x, pos.y);
+      if (handle && this.selectedObjects.length === 1) {
+        this.isResizing = true;
+        this.resizeHandle = handle;
+        this.dragStartX = pos.x;
+        this.dragStartY = pos.y;
+        return;
+      }
+      
+      // Check if clicking on object
+      const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+      if (clickedObject) {
+        if (!e.shiftKey) {
+          this.selectedObjects = [clickedObject];
+        } else {
+          const index = this.selectedObjects.indexOf(clickedObject);
+          if (index === -1) {
+            this.selectedObjects.push(clickedObject);
+          } else {
+            this.selectedObjects.splice(index, 1);
+          }
+        }
+        this.isDragging = true;
+        this.dragStartX = pos.x;
+        this.dragStartY = pos.y;
+        this.render();
+        return;
+      }
+      
+      // Start selection box
+      this.isSelecting = true;
+      this.selectionBox = { startX: pos.x, startY: pos.y, endX: pos.x, endY: pos.y };
+      this.selectedObjects = [];
+      this.render();
+      return;
+    }
+    
+    if (this.tool === 'eraser') {
+      const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+      if (clickedObject) {
+        this.deleteObject(clickedObject);
+        this.saveCurrentFrame();
+        this.render();
+        return;
+      }
+    }
+    
     this.isDrawing = true;
     this.lastX = pos.x;
     this.lastY = pos.y;
-    
-    if (this.tool === 'smartdraw') {
-      this.drawPoints = [{ x: pos.x, y: pos.y }];
-      this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
-    }
+    this.drawPoints = [{ x: pos.x, y: pos.y }];
+    this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
   }
   
   draw(e) {
-    if (!this.isDrawing) return;
-    
     const pos = this.getMousePos(e);
     
-    if (this.tool === 'smartdraw') {
-      this.drawPoints.push({ x: pos.x, y: pos.y });
-      
-      // Draw temporary preview
-      this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
-      this.tempCtx.strokeStyle = this.color;
-      this.tempCtx.lineWidth = this.brushSize;
-      this.tempCtx.lineCap = 'round';
-      this.tempCtx.lineJoin = 'round';
-      this.tempCtx.globalCompositeOperation = 'source-over';
-      
-      this.tempCtx.beginPath();
-      this.tempCtx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
-      for (let i = 1; i < this.drawPoints.length; i++) {
-        this.tempCtx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
+    if (this.tool === 'mouse') {
+      if (this.isResizing && this.selectedObjects.length === 1) {
+        const obj = this.selectedObjects[0];
+        const dx = pos.x - this.dragStartX;
+        const dy = pos.y - this.dragStartY;
+        
+        if (this.resizeHandle === 'se') {
+          obj.width += dx;
+          obj.height += dy;
+        } else if (this.resizeHandle === 'sw') {
+          obj.x += dx;
+          obj.width -= dx;
+          obj.height += dy;
+        } else if (this.resizeHandle === 'ne') {
+          obj.width += dx;
+          obj.y += dy;
+          obj.height -= dy;
+        } else if (this.resizeHandle === 'nw') {
+          obj.x += dx;
+          obj.width -= dx;
+          obj.y += dy;
+          obj.height -= dy;
+        }
+        
+        this.dragStartX = pos.x;
+        this.dragStartY = pos.y;
+        this.render();
+        return;
       }
-      this.tempCtx.stroke();
       
-      // Overlay temp canvas on main canvas
-      const currentFrame = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.putImageData(currentFrame, 0, 0);
-      this.ctx.drawImage(this.tempCanvas, 0, 0);
+      if (this.isDragging) {
+        const dx = pos.x - this.dragStartX;
+        const dy = pos.y - this.dragStartY;
+        
+        for (const obj of this.selectedObjects) {
+          obj.x += dx;
+          obj.y += dy;
+        }
+        
+        this.dragStartX = pos.x;
+        this.dragStartY = pos.y;
+        this.render();
+        return;
+      }
+      
+      if (this.isSelecting) {
+        this.selectionBox.endX = pos.x;
+        this.selectionBox.endY = pos.y;
+        this.render();
+        return;
+      }
       
       return;
     }
     
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.lastX, this.lastY);
-    this.ctx.lineTo(pos.x, pos.y);
+    if (!this.isDrawing) return;
     
-    if (this.tool === 'pencil') {
-      this.ctx.strokeStyle = this.color;
-      this.ctx.globalCompositeOperation = 'source-over';
-    } else if (this.tool === 'eraser') {
-      this.ctx.globalCompositeOperation = 'destination-out';
+    this.drawPoints.push({ x: pos.x, y: pos.y });
+    
+    // Draw temporary preview
+    this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    this.tempCtx.strokeStyle = this.color;
+    this.tempCtx.lineWidth = this.brushSize;
+    this.tempCtx.lineCap = 'round';
+    this.tempCtx.lineJoin = 'round';
+    this.tempCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
+    
+    this.tempCtx.beginPath();
+    this.tempCtx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
+    for (let i = 1; i < this.drawPoints.length; i++) {
+      this.tempCtx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
     }
+    this.tempCtx.stroke();
     
-    this.ctx.lineWidth = this.brushSize;
-    this.ctx.lineCap = 'round';
-    this.ctx.lineJoin = 'round';
-    this.ctx.stroke();
-    
-    this.lastX = pos.x;
-    this.lastY = pos.y;
+    this.render();
   }
   
   stopDrawing() {
+    if (this.tool === 'mouse') {
+      if (this.isResizing) {
+        this.isResizing = false;
+        this.resizeHandle = null;
+        this.saveCurrentFrame();
+        return;
+      }
+      
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.saveCurrentFrame();
+        return;
+      }
+      
+      if (this.isSelecting) {
+        this.isSelecting = false;
+        // Select objects in box
+        const box = this.selectionBox;
+        const minX = Math.min(box.startX, box.endX);
+        const maxX = Math.max(box.startX, box.endX);
+        const minY = Math.min(box.startY, box.endY);
+        const maxY = Math.max(box.startY, box.endY);
+        
+        this.selectedObjects = this.getCurrentFrameObjects().filter(obj => {
+          return obj.x + obj.width > minX && obj.x < maxX &&
+                 obj.y + obj.height > minY && obj.y < maxY;
+        });
+        
+        this.selectionBox = null;
+        this.render();
+        return;
+      }
+      
+      return;
+    }
+    
     if (this.isDrawing) {
       this.isDrawing = false;
       
-      if (this.tool === 'smartdraw' && this.drawPoints.length > 2) {
-        this.recognizeAndDrawShape();
+      if (this.tool === 'pencil' && this.drawPoints.length > 2) {
+        const recognizedShape = this.recognizeShape();
+        if (recognizedShape) {
+          this.addObject(recognizedShape);
+        } else {
+          // Add freehand path as object
+          this.addObject({
+            type: 'path',
+            points: [...this.drawPoints],
+            color: this.color,
+            lineWidth: this.brushSize,
+            x: Math.min(...this.drawPoints.map(p => p.x)),
+            y: Math.min(...this.drawPoints.map(p => p.y)),
+            width: Math.max(...this.drawPoints.map(p => p.x)) - Math.min(...this.drawPoints.map(p => p.x)),
+            height: Math.max(...this.drawPoints.map(p => p.y)) - Math.min(...this.drawPoints.map(p => p.y))
+          });
+        }
       }
       
+      this.drawPoints = [];
+      this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
       this.saveCurrentFrame();
+      this.render();
     }
   }
   
-  recognizeAndDrawShape() {
-    if (this.drawPoints.length < 5) return;
+  recognizeShape() {
+    if (this.drawPoints.length < 5) return null;
     
     const firstPoint = this.drawPoints[0];
     const lastPoint = this.drawPoints[this.drawPoints.length - 1];
@@ -272,42 +414,37 @@ class AnimationStudio {
         return sum + Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2));
       }, 0) / this.drawPoints.length;
       
-      this.ctx.globalCompositeOperation = 'source-over';
-      this.ctx.strokeStyle = this.color;
-      this.ctx.lineWidth = this.brushSize;
-      this.ctx.beginPath();
-      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      this.ctx.stroke();
+      return {
+        type: 'circle',
+        x: centerX - radius,
+        y: centerY - radius,
+        width: radius * 2,
+        height: radius * 2,
+        color: this.color,
+        lineWidth: this.brushSize
+      };
     } else {
       // Check if it's a straight line
       const isLine = this.isApproximatelyLine();
       
       if (isLine) {
-        this.ctx.globalCompositeOperation = 'source-over';
-        this.ctx.strokeStyle = this.color;
-        this.ctx.lineWidth = this.brushSize;
-        this.ctx.lineCap = 'round';
-        this.ctx.beginPath();
-        this.ctx.moveTo(firstPoint.x, firstPoint.y);
-        this.ctx.lineTo(lastPoint.x, lastPoint.y);
-        this.ctx.stroke();
-      } else {
-        // Draw as freehand
-        this.ctx.globalCompositeOperation = 'source-over';
-        this.ctx.strokeStyle = this.color;
-        this.ctx.lineWidth = this.brushSize;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.drawPoints[0].x, this.drawPoints[0].y);
-        for (let i = 1; i < this.drawPoints.length; i++) {
-          this.ctx.lineTo(this.drawPoints[i].x, this.drawPoints[i].y);
-        }
-        this.ctx.stroke();
+        return {
+          type: 'line',
+          x: Math.min(firstPoint.x, lastPoint.x),
+          y: Math.min(firstPoint.y, lastPoint.y),
+          width: Math.abs(lastPoint.x - firstPoint.x),
+          height: Math.abs(lastPoint.y - firstPoint.y),
+          startX: firstPoint.x,
+          startY: firstPoint.y,
+          endX: lastPoint.x,
+          endY: lastPoint.y,
+          color: this.color,
+          lineWidth: this.brushSize
+        };
       }
     }
     
-    this.drawPoints = [];
+    return null;
   }
   
   isApproximatelyLine() {
@@ -316,14 +453,12 @@ class AnimationStudio {
     const firstPoint = this.drawPoints[0];
     const lastPoint = this.drawPoints[this.drawPoints.length - 1];
     
-    // Calculate the ideal line
     const dx = lastPoint.x - firstPoint.x;
     const dy = lastPoint.y - firstPoint.y;
     const lineLength = Math.sqrt(dx * dx + dy * dy);
     
     if (lineLength < 20) return false;
     
-    // Check how much points deviate from the line
     let maxDeviation = 0;
     for (const point of this.drawPoints) {
       const deviation = Math.abs(
@@ -339,7 +474,6 @@ class AnimationStudio {
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const pixels = imageData.data;
     
-    // Convert hex color to RGB
     const r = parseInt(this.color.substr(1, 2), 16);
     const g = parseInt(this.color.substr(3, 2), 16);
     const b = parseInt(this.color.substr(5, 2), 16);
@@ -352,7 +486,6 @@ class AnimationStudio {
     const targetB = pixels[startIndex + 2];
     const targetA = pixels[startIndex + 3];
     
-    // Don't fill if clicking on the same color
     if (targetR === r && targetG === g && targetB === b) return;
     
     const pixelsToFill = [[startX, startY]];
@@ -392,9 +525,10 @@ class AnimationStudio {
   }
   
   clearFrame() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.saveCurrentFrame();
+    this.frames[this.currentFrameIndex].objects = [];
+    this.selectedObjects = [];
     this.render();
+    this.saveCurrentFrame();
   }
   
   uploadImage(e) {
@@ -405,13 +539,20 @@ class AnimationStudio {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
         const width = Math.min(img.width, 300);
         const height = (img.height / img.width) * width;
         
-        this.ctx.drawImage(img, centerX - width / 2, centerY - height / 2, width, height);
+        this.addObject({
+          type: 'image',
+          x: (this.canvas.width - width) / 2,
+          y: (this.canvas.height - height) / 2,
+          width: width,
+          height: height,
+          src: event.target.result
+        });
+        
         this.saveCurrentFrame();
+        this.render();
       };
       img.src = event.target.result;
     };
@@ -420,41 +561,145 @@ class AnimationStudio {
   
   insertShape(shape) {
     this.selectedShape = shape;
-    document.getElementById('resizeControls').style.display = 'block';
     this.drawShape(shape, this.shapeWidth, this.shapeHeight);
     this.saveCurrentFrame();
   }
   
   drawShape(shape, width, height) {
-    const centerX = this.canvas.width / 2;
-    const centerY = this.canvas.height / 2;
+    const x = (this.canvas.width - width) / 2;
+    const y = (this.canvas.height - height) / 2;
     
-    this.ctx.fillStyle = this.color;
-    this.ctx.strokeStyle = this.color;
-    this.ctx.lineWidth = 2;
+    this.addObject({
+      type: shape,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      color: this.color,
+      lineWidth: 2
+    });
     
-    if (shape === 'circle') {
-      const radius = Math.min(width, height) / 2;
-      this.ctx.beginPath();
-      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.stroke();
-    } else if (shape === 'square') {
-      this.ctx.fillRect(centerX - width / 2, centerY - height / 2, width, height);
-      this.ctx.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
-    } else if (shape === 'triangle') {
-      this.ctx.beginPath();
-      this.ctx.moveTo(centerX, centerY - height / 2);
-      this.ctx.lineTo(centerX - width / 2, centerY + height / 2);
-      this.ctx.lineTo(centerX + width / 2, centerY + height / 2);
-      this.ctx.closePath();
-      this.ctx.fill();
-      this.ctx.stroke();
+    this.render();
+  }
+  
+  addObject(obj) {
+    this.getCurrentFrameObjects().push(obj);
+  }
+  
+  deleteObject(obj) {
+    const objects = this.getCurrentFrameObjects();
+    const index = objects.indexOf(obj);
+    if (index !== -1) {
+      objects.splice(index, 1);
     }
   }
   
+  getCurrentFrameObjects() {
+    return this.frames[this.currentFrameIndex].objects;
+  }
+  
+  getObjectAtPoint(x, y) {
+    const objects = this.getCurrentFrameObjects();
+    for (let i = objects.length - 1; i >= 0; i--) {
+      const obj = objects[i];
+      if (x >= obj.x && x <= obj.x + obj.width &&
+          y >= obj.y && y <= obj.y + obj.height) {
+        return obj;
+      }
+    }
+    return null;
+  }
+  
+  getResizeHandle(x, y) {
+    if (this.selectedObjects.length !== 1) return null;
+    
+    const obj = this.selectedObjects[0];
+    const handleSize = 8;
+    
+    const handles = {
+      nw: { x: obj.x, y: obj.y },
+      ne: { x: obj.x + obj.width, y: obj.y },
+      sw: { x: obj.x, y: obj.y + obj.height },
+      se: { x: obj.x + obj.width, y: obj.y + obj.height }
+    };
+    
+    for (const [name, pos] of Object.entries(handles)) {
+      if (x >= pos.x - handleSize && x <= pos.x + handleSize &&
+          y >= pos.y - handleSize && y <= pos.y + handleSize) {
+        return name;
+      }
+    }
+    
+    return null;
+  }
+  
+  groupSelectedObjects() {
+    if (this.selectedObjects.length < 2) {
+      alert('Select at least 2 objects to group');
+      return;
+    }
+    
+    const minX = Math.min(...this.selectedObjects.map(o => o.x));
+    const minY = Math.min(...this.selectedObjects.map(o => o.y));
+    const maxX = Math.max(...this.selectedObjects.map(o => o.x + o.width));
+    const maxY = Math.max(...this.selectedObjects.map(o => o.y + o.height));
+    
+    const group = {
+      type: 'group',
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      children: [...this.selectedObjects]
+    };
+    
+    const objects = this.getCurrentFrameObjects();
+    for (const obj of this.selectedObjects) {
+      const index = objects.indexOf(obj);
+      if (index !== -1) {
+        objects.splice(index, 1);
+      }
+    }
+    
+    objects.push(group);
+    this.selectedObjects = [group];
+    this.saveCurrentFrame();
+    this.render();
+  }
+  
+  ungroupSelectedObjects() {
+    if (this.selectedObjects.length !== 1 || this.selectedObjects[0].type !== 'group') {
+      alert('Select a single group to ungroup');
+      return;
+    }
+    
+    const group = this.selectedObjects[0];
+    const objects = this.getCurrentFrameObjects();
+    const index = objects.indexOf(group);
+    
+    if (index !== -1) {
+      objects.splice(index, 1);
+      objects.push(...group.children);
+      this.selectedObjects = [...group.children];
+      this.saveCurrentFrame();
+      this.render();
+    }
+  }
+  
+  deleteSelectedObjects() {
+    const objects = this.getCurrentFrameObjects();
+    for (const obj of this.selectedObjects) {
+      const index = objects.indexOf(obj);
+      if (index !== -1) {
+        objects.splice(index, 1);
+      }
+    }
+    this.selectedObjects = [];
+    this.saveCurrentFrame();
+    this.render();
+  }
+  
   saveCurrentFrame() {
-    this.frames[this.currentFrameIndex] = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     this.updateTimeline();
   }
   
@@ -464,12 +709,125 @@ class AnimationStudio {
     // Onion skin
     if (this.onionSkinEnabled && this.currentFrameIndex > 0) {
       this.ctx.globalAlpha = 0.3;
-      this.ctx.putImageData(this.frames[this.currentFrameIndex - 1], 0, 0);
+      this.renderFrame(this.frames[this.currentFrameIndex - 1]);
       this.ctx.globalAlpha = 1.0;
     }
     
     // Current frame
-    this.ctx.putImageData(this.frames[this.currentFrameIndex], 0, 0);
+    this.renderFrame(this.frames[this.currentFrameIndex]);
+    
+    // Draw temp canvas (for drawing preview)
+    if (this.isDrawing && this.tool === 'pencil') {
+      this.ctx.drawImage(this.tempCanvas, 0, 0);
+    }
+    
+    // Draw selection box
+    if (this.isSelecting && this.selectionBox) {
+      const box = this.selectionBox;
+      this.ctx.strokeStyle = '#0078d4';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([5, 5]);
+      this.ctx.strokeRect(
+        Math.min(box.startX, box.endX),
+        Math.min(box.startY, box.endY),
+        Math.abs(box.endX - box.startX),
+        Math.abs(box.endY - box.startY)
+      );
+      this.ctx.setLineDash([]);
+    }
+    
+    // Draw selection highlights and resize handles
+    if (this.tool === 'mouse' && this.selectedObjects.length > 0) {
+      this.ctx.strokeStyle = '#0078d4';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([5, 5]);
+      
+      for (const obj of this.selectedObjects) {
+        this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      }
+      
+      this.ctx.setLineDash([]);
+      
+      // Draw resize handles for single selection
+      if (this.selectedObjects.length === 1) {
+        const obj = this.selectedObjects[0];
+        const handleSize = 8;
+        this.ctx.fillStyle = '#0078d4';
+        
+        const handles = [
+          { x: obj.x, y: obj.y },
+          { x: obj.x + obj.width, y: obj.y },
+          { x: obj.x, y: obj.y + obj.height },
+          { x: obj.x + obj.width, y: obj.y + obj.height }
+        ];
+        
+        for (const handle of handles) {
+          this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+        }
+      }
+    }
+  }
+  
+  renderFrame(frame) {
+    for (const obj of frame.objects) {
+      this.renderObject(obj);
+    }
+  }
+  
+  renderObject(obj) {
+    if (obj.type === 'circle') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.fillStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.beginPath();
+      this.ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    } else if (obj.type === 'square') {
+      this.ctx.fillStyle = obj.color;
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+      this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+    } else if (obj.type === 'triangle') {
+      this.ctx.fillStyle = obj.color;
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.x + obj.width / 2, obj.y);
+      this.ctx.lineTo(obj.x, obj.y + obj.height);
+      this.ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+    } else if (obj.type === 'line') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineCap = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.startX, obj.startY);
+      this.ctx.lineTo(obj.endX, obj.endY);
+      this.ctx.stroke();
+    } else if (obj.type === 'path') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.points[0].x, obj.points[0].y);
+      for (let i = 1; i < obj.points.length; i++) {
+        this.ctx.lineTo(obj.points[i].x, obj.points[i].y);
+      }
+      this.ctx.stroke();
+    } else if (obj.type === 'image') {
+      const img = new Image();
+      img.src = obj.src;
+      this.ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+    } else if (obj.type === 'group') {
+      for (const child of obj.children) {
+        this.renderObject(child);
+      }
+    }
   }
   
   addFrame() {
@@ -491,7 +849,9 @@ class AnimationStudio {
   }
   
   duplicateFrame() {
-    const duplicatedFrame = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const duplicatedFrame = {
+      objects: JSON.parse(JSON.stringify(this.frames[this.currentFrameIndex].objects))
+    };
     this.frames.splice(this.currentFrameIndex + 1, 0, duplicatedFrame);
     this.currentFrameIndex++;
     this.updateTimeline();
@@ -499,6 +859,7 @@ class AnimationStudio {
   
   selectFrame(index) {
     this.currentFrameIndex = index;
+    this.selectedObjects = [];
     this.render();
     this.updateTimeline();
   }
@@ -523,7 +884,12 @@ class AnimationStudio {
       tempCanvas.width = this.canvas.width;
       tempCanvas.height = this.canvas.height;
       const tempCtx = tempCanvas.getContext('2d');
-      tempCtx.putImageData(frame, 0, 0);
+      
+      for (const obj of frame.objects) {
+        this.ctx = tempCtx;
+        this.renderObject(obj);
+        this.ctx = this.canvas.getContext('2d');
+      }
       
       thumbCtx.drawImage(tempCanvas, 0, 0, 80, 60);
       
@@ -566,7 +932,7 @@ class AnimationStudio {
         width: this.canvas.width,
         height: this.canvas.height,
         fps: this.fps,
-        frames: this.frames.map(frame => Array.from(frame.data))
+        frames: this.frames
       };
       
       const dataStr = JSON.stringify(projectData);
@@ -592,13 +958,9 @@ class AnimationStudio {
       this.fps = projectData.fps;
       document.getElementById('fpsInput').value = this.fps;
       
-      this.frames = projectData.frames.map(frameData => {
-        const imageData = this.ctx.createImageData(projectData.width, projectData.height);
-        imageData.data.set(frameData);
-        return imageData;
-      });
-      
+      this.frames = projectData.frames;
       this.currentFrameIndex = 0;
+      this.selectedObjects = [];
       this.updateTimeline();
       this.render();
       alert('Project loaded successfully!');
@@ -612,9 +974,7 @@ class AnimationStudio {
       width: this.canvas.width,
       height: this.canvas.height,
       fps: this.fps,
-      frames: this.frames.map(frame => {
-        return Array.from(frame.data);
-      })
+      frames: this.frames
     };
     
     const dataStr = JSON.stringify(projectData);
@@ -648,13 +1008,9 @@ class AnimationStudio {
           this.fps = projectData.fps;
           document.getElementById('fpsInput').value = this.fps;
           
-          this.frames = projectData.frames.map(frameData => {
-            const imageData = this.ctx.createImageData(projectData.width, projectData.height);
-            imageData.data.set(frameData);
-            return imageData;
-          });
-          
+          this.frames = projectData.frames;
           this.currentFrameIndex = 0;
+          this.selectedObjects = [];
           this.updateTimeline();
           this.render();
         } catch (error) {
@@ -673,5 +1029,4 @@ class AnimationStudio {
   }
 }
 
-// Initialize the application
 const app = new AnimationStudio();
