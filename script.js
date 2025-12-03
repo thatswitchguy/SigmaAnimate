@@ -1073,8 +1073,74 @@ class AnimationStudio {
     input.click();
   }
   
-  exportGIF() {
-    alert('GIF export functionality:\n\nTo export as GIF, you would need a GIF encoding library. For now, you can:\n\n1. Save your project to cloud or download as JSON\n2. Use the Play feature to view your animation\n3. Use screen recording software to capture the animation\n\nAlternatively, frames are saved and can be exported individually by right-clicking the canvas during playback.');
+  async exportGIF() {
+    if (this.frames.length === 0) {
+      alert('No frames to export!');
+      return;
+    }
+
+    try {
+      // Create a video stream from the canvas
+      const stream = this.canvas.captureStream(this.fps);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 2500000
+      });
+
+      const chunks = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'animation.webm';
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        
+        // Return to first frame
+        this.currentFrameIndex = 0;
+        this.render();
+        this.updateTimeline();
+      };
+
+      // Start recording
+      mediaRecorder.start();
+
+      // Play through all frames twice to ensure smooth recording
+      const totalCycles = 2;
+      let currentCycle = 0;
+      let frameIndex = 0;
+
+      const recordInterval = setInterval(() => {
+        this.currentFrameIndex = frameIndex;
+        this.render();
+        
+        frameIndex++;
+        if (frameIndex >= this.frames.length) {
+          frameIndex = 0;
+          currentCycle++;
+          
+          if (currentCycle >= totalCycles) {
+            clearInterval(recordInterval);
+            // Wait a bit before stopping to ensure last frame is captured
+            setTimeout(() => {
+              mediaRecorder.stop();
+            }, 100);
+          }
+        }
+      }, 1000 / this.fps);
+
+    } catch (error) {
+      alert('Error exporting video: ' + error.message + '\n\nTry using Chrome or Edge for best compatibility.');
+    }
   }
 }
 
