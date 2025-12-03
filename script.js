@@ -1080,10 +1080,58 @@ class AnimationStudio {
     }
 
     try {
+      // Pre-load all images before recording
+      const imagePromises = [];
+      for (const frame of this.frames) {
+        for (const obj of frame.objects) {
+          if (obj.type === 'image' && !obj.imageElement) {
+            const promise = new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                obj.imageElement = img;
+                resolve();
+              };
+              img.onerror = () => resolve();
+              img.src = obj.src;
+            });
+            imagePromises.push(promise);
+          } else if (obj.type === 'group') {
+            for (const child of obj.children) {
+              if (child.type === 'image' && !child.imageElement) {
+                const promise = new Promise((resolve) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    child.imageElement = img;
+                    resolve();
+                  };
+                  img.onerror = () => resolve();
+                  img.src = child.src;
+                });
+                imagePromises.push(promise);
+              }
+            }
+          }
+        }
+      }
+      
+      await Promise.all(imagePromises);
+
       // Create a video stream from the canvas
       const stream = this.canvas.captureStream(this.fps);
+      
+      // Try to use MP4 format, fall back to WebM if not supported
+      let mimeType = 'video/webm;codecs=vp9';
+      let extension = 'webm';
+      
+      if (MediaRecorder.isTypeSupported('video/mp4')) {
+        mimeType = 'video/mp4';
+        extension = 'mp4';
+      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+        mimeType = 'video/webm;codecs=h264';
+      }
+      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
+        mimeType: mimeType,
         videoBitsPerSecond: 2500000
       });
 
@@ -1095,12 +1143,12 @@ class AnimationStudio {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         const url = URL.createObjectURL(blob);
         
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'animation.webm';
+        link.download = `animation.${extension}`;
         link.click();
         
         URL.revokeObjectURL(url);
@@ -1122,9 +1170,13 @@ class AnimationStudio {
       const recordInterval = setInterval(() => {
         this.currentFrameIndex = frameIndex;
         
-        // Render frame directly to canvas without updating timeline
+        // Render frame directly to canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.renderFrame(this.frames[this.currentFrameIndex]);
+        
+        // Render each object in the frame
+        for (const obj of this.frames[this.currentFrameIndex].objects) {
+          this.renderObjectForExport(obj);
+        }
         
         frameIndex++;
         if (frameIndex >= this.frames.length) {
@@ -1143,6 +1195,62 @@ class AnimationStudio {
 
     } catch (error) {
       alert('Error exporting video: ' + error.message + '\n\nTry using Chrome or Edge for best compatibility.');
+    }
+  }
+  
+  renderObjectForExport(obj) {
+    if (obj.type === 'circle') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.fillStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.beginPath();
+      this.ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    } else if (obj.type === 'square') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.fillStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+      this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+    } else if (obj.type === 'triangle') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.fillStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.x + obj.width / 2, obj.y);
+      this.ctx.lineTo(obj.x, obj.y + obj.height);
+      this.ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+    } else if (obj.type === 'line') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineCap = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.startX, obj.startY);
+      this.ctx.lineTo(obj.endX, obj.endY);
+      this.ctx.stroke();
+    } else if (obj.type === 'path') {
+      this.ctx.strokeStyle = obj.color;
+      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(obj.points[0].x, obj.points[0].y);
+      for (let i = 1; i < obj.points.length; i++) {
+        this.ctx.lineTo(obj.points[i].x, obj.points[i].y);
+      }
+      this.ctx.stroke();
+    } else if (obj.type === 'image') {
+      if (obj.imageElement) {
+        this.ctx.drawImage(obj.imageElement, obj.x, obj.y, obj.width, obj.height);
+      }
+    } else if (obj.type === 'group') {
+      for (const child of obj.children) {
+        this.renderObjectForExport(child);
+      }
     }
   }
 }
