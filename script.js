@@ -318,10 +318,11 @@ class AnimationStudio {
 
   getMousePos(e) {
     const rect = this.canvas.getBoundingClientRect();
+    
+    // Calculate position relative to canvas, accounting for scaling
     const scaleX = this.canvas.width / rect.width;
     const scaleY = this.canvas.height / rect.height;
     
-    // Calculate position relative to canvas
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
     
