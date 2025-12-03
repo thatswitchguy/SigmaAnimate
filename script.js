@@ -16,6 +16,7 @@ class AnimationStudio {
     this.fps = 12;
     this.animationInterval = null;
     this.onionSkinEnabled = false;
+    this.smartDrawEnabled = true;
     
     this.lastX = 0;
     this.lastY = 0;
@@ -130,6 +131,10 @@ class AnimationStudio {
     document.getElementById('onionSkin').addEventListener('change', (e) => {
       this.onionSkinEnabled = e.target.checked;
       this.render();
+    });
+    
+    document.getElementById('smartDrawToggle').addEventListener('change', (e) => {
+      this.smartDrawEnabled = e.target.checked;
     });
     
     // File controls
@@ -379,9 +384,23 @@ class AnimationStudio {
       this.isDrawing = false;
       
       if (this.tool === 'pencil' && this.drawPoints.length > 2) {
-        const recognizedShape = this.recognizeShape();
-        // Always add the recognized shape or the original path
-        this.addObject(recognizedShape);
+        let shapeToAdd;
+        if (this.smartDrawEnabled) {
+          shapeToAdd = this.recognizeShape();
+        } else {
+          // Just create a path without shape recognition
+          shapeToAdd = {
+            type: 'path',
+            points: [...this.drawPoints],
+            color: this.color,
+            lineWidth: this.brushSize,
+            x: Math.min(...this.drawPoints.map(p => p.x)),
+            y: Math.min(...this.drawPoints.map(p => p.y)),
+            width: Math.max(...this.drawPoints.map(p => p.x)) - Math.min(...this.drawPoints.map(p => p.x)),
+            height: Math.max(...this.drawPoints.map(p => p.y)) - Math.min(...this.drawPoints.map(p => p.y))
+          };
+        }
+        this.addObject(shapeToAdd);
       }
       
       this.drawPoints = [];
