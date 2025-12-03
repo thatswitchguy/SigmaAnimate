@@ -1,6 +1,4 @@
 
-import { Client } from '@replit/object-storage';
-
 class AnimationStudio {
   constructor() {
     this.canvas = document.getElementById('drawCanvas');
@@ -25,8 +23,6 @@ class AnimationStudio {
     this.selectedShape = null;
     this.shapeWidth = 100;
     this.shapeHeight = 100;
-    
-    this.storageClient = new Client();
     
     this.initializeEventListeners();
     this.render();
@@ -369,7 +365,7 @@ class AnimationStudio {
     }
   }
   
-  async saveToCloud() {
+  saveToCloud() {
     try {
       const projectData = {
         width: this.canvas.width,
@@ -379,16 +375,21 @@ class AnimationStudio {
       };
       
       const dataStr = JSON.stringify(projectData);
-      await this.storageClient.uploadFromText('animation_project.json', dataStr);
-      alert('Project saved to cloud successfully!');
+      localStorage.setItem('animation_project', dataStr);
+      alert('Project saved successfully!');
     } catch (error) {
-      alert('Error saving to cloud: ' + error.message);
+      alert('Error saving: ' + error.message);
     }
   }
   
-  async loadFromCloud() {
+  loadFromCloud() {
     try {
-      const dataStr = await this.storageClient.downloadAsText('animation_project.json');
+      const dataStr = localStorage.getItem('animation_project');
+      if (!dataStr) {
+        alert('No saved project found!');
+        return;
+      }
+      
       const projectData = JSON.parse(dataStr);
       
       this.canvas.width = projectData.width;
@@ -405,9 +406,9 @@ class AnimationStudio {
       this.currentFrameIndex = 0;
       this.updateTimeline();
       this.render();
-      alert('Project loaded from cloud successfully!');
+      alert('Project loaded successfully!');
     } catch (error) {
-      alert('Error loading from cloud: ' + error.message);
+      alert('Error loading: ' + error.message);
     }
   }
   

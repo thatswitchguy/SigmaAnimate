@@ -22,34 +22,36 @@
         <span id="brushSizeLabel">3px</span>
       </div>
       <div class="file-controls">
-        <button id="cloudSaveBtn">☁️ Save to Cloud</button>
-        <button id="cloudLoadBtn">☁️ Load from Cloud</button>
-        <button id="downloadBtn">💾 Download Project</button>
-        <button id="loadBtn">📂 Load Project</button>
+        <button id="cloudSaveBtn">💾 Save</button>
+        <button id="cloudLoadBtn">📂 Load</button>
+        <button id="downloadBtn">⬇️ Download</button>
+        <button id="loadBtn">⬆️ Upload</button>
         <button id="exportBtn">📥 Export GIF</button>
       </div>
     </header>
 
     <main>
-      <div class="sidebar">
-        <h3>Insert</h3>
-        <div class="insert-tools">
-          <button id="uploadImageBtn" class="insert-btn">📷 Upload Image</button>
-          <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-          <button id="circleBtn" class="insert-btn">⭕ Circle</button>
-          <button id="squareBtn" class="insert-btn">⬜ Square</button>
-          <button id="triangleBtn" class="insert-btn">🔺 Triangle</button>
+      <div class="content-area">
+        <div class="sidebar">
+          <h3>Insert</h3>
+          <div class="insert-tools">
+            <button id="uploadImageBtn" class="insert-btn">📷 Upload Image</button>
+            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            <button id="circleBtn" class="insert-btn">⭕ Circle</button>
+            <button id="squareBtn" class="insert-btn">⬜ Square</button>
+            <button id="triangleBtn" class="insert-btn">🔺 Triangle</button>
+          </div>
+          <div class="resize-controls" id="resizeControls" style="display: none;">
+            <h4>Resize Shape</h4>
+            <label>Width: <input type="number" id="shapeWidth" min="10" max="500" value="100"></label>
+            <label>Height: <input type="number" id="shapeHeight" min="10" max="500" value="100"></label>
+            <button id="applyResize">Apply</button>
+          </div>
         </div>
-        <div class="resize-controls" id="resizeControls" style="display: none;">
-          <h4>Resize Shape</h4>
-          <label>Width: <input type="number" id="shapeWidth" min="10" max="500" value="100"></label>
-          <label>Height: <input type="number" id="shapeHeight" min="10" max="500" value="100"></label>
-          <button id="applyResize">Apply</button>
+        
+        <div class="canvas-container">
+          <canvas id="drawCanvas"></canvas>
         </div>
-      </div>
-      
-      <div class="canvas-container">
-        <canvas id="drawCanvas"></canvas>
       </div>
 
       <div class="animation-controls">
@@ -73,7 +75,7 @@
     </main>
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 
 </html>
