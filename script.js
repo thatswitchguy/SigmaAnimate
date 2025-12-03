@@ -1084,7 +1084,7 @@ class AnimationStudio {
       const imagePromises = [];
       for (const frame of this.frames) {
         for (const obj of frame.objects) {
-          if (obj.type === 'image' && !obj.imageElement) {
+          if (obj.type === 'image') {
             const promise = new Promise((resolve) => {
               const img = new Image();
               img.onload = () => {
@@ -1097,7 +1097,7 @@ class AnimationStudio {
             imagePromises.push(promise);
           } else if (obj.type === 'group') {
             for (const child of obj.children) {
-              if (child.type === 'image' && !child.imageElement) {
+              if (child.type === 'image') {
                 const promise = new Promise((resolve) => {
                   const img = new Image();
                   img.onload = () => {
@@ -1116,23 +1116,13 @@ class AnimationStudio {
       
       await Promise.all(imagePromises);
 
-      // Create a video stream from the canvas
+      // Use WebM format (browsers don't actually support MP4 in MediaRecorder)
+      const mimeType = 'video/webm';
+      
       const stream = this.canvas.captureStream(this.fps);
-      
-      // Try to use MP4 format, fall back to WebM if not supported
-      let mimeType = 'video/webm;codecs=vp9';
-      let extension = 'webm';
-      
-      if (MediaRecorder.isTypeSupported('video/mp4')) {
-        mimeType = 'video/mp4';
-        extension = 'mp4';
-      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-        mimeType = 'video/webm;codecs=h264';
-      }
-      
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType,
-        videoBitsPerSecond: 2500000
+        videoBitsPerSecond: 5000000
       });
 
       const chunks = [];
@@ -1148,7 +1138,7 @@ class AnimationStudio {
         
         const link = document.createElement('a');
         link.href = url;
-        link.download = `animation.${extension}`;
+        link.download = 'animation.webm';
         link.click();
         
         URL.revokeObjectURL(url);
@@ -1162,15 +1152,15 @@ class AnimationStudio {
       // Start recording
       mediaRecorder.start();
 
-      // Play through all frames twice to ensure smooth recording
-      const totalCycles = 2;
-      let currentCycle = 0;
+      // Play through all frames at least twice for proper encoding
       let frameIndex = 0;
+      let cycleCount = 0;
+      const totalCycles = Math.max(2, Math.ceil(60 / this.frames.length)); // At least 2 cycles or 60 frames
 
       const recordInterval = setInterval(() => {
         this.currentFrameIndex = frameIndex;
         
-        // Render frame directly to canvas
+        // Clear and render frame
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Render each object in the frame
@@ -1181,20 +1171,20 @@ class AnimationStudio {
         frameIndex++;
         if (frameIndex >= this.frames.length) {
           frameIndex = 0;
-          currentCycle++;
+          cycleCount++;
           
-          if (currentCycle >= totalCycles) {
+          if (cycleCount >= totalCycles) {
             clearInterval(recordInterval);
-            // Wait a bit before stopping to ensure last frame is captured
+            // Wait to ensure all frames are captured
             setTimeout(() => {
               mediaRecorder.stop();
-            }, 100);
+            }, 500);
           }
         }
       }, 1000 / this.fps);
 
     } catch (error) {
-      alert('Error exporting video: ' + error.message + '\n\nTry using Chrome or Edge for best compatibility.');
+      alert('Error exporting video: ' + error.message + '\n\nNote: Your browser may not support video export. Try Chrome or Edge.');
     }
   }
   
