@@ -52,6 +52,16 @@ class AnimationStudio {
   }
   
   initializeEventListeners() {
+    // Keyboard events
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (this.selectedObjects.length > 0) {
+          e.preventDefault();
+          this.deleteSelectedObjects();
+        }
+      }
+    });
+    
     // Drawing events
     this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
     this.canvas.addEventListener('mousemove', (e) => this.draw(e));
@@ -706,11 +716,14 @@ class AnimationStudio {
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Onion skin
+    // Onion skin - show light silhouette of previous frame
     if (this.onionSkinEnabled && this.currentFrameIndex > 0) {
-      this.ctx.globalAlpha = 0.3;
+      this.ctx.save();
+      this.ctx.globalAlpha = 0.2;
+      this.ctx.strokeStyle = '#888888';
+      this.ctx.fillStyle = 'rgba(200, 200, 200, 0.1)';
       this.renderFrame(this.frames[this.currentFrameIndex - 1]);
-      this.ctx.globalAlpha = 1.0;
+      this.ctx.restore();
     }
     
     // Current frame
@@ -776,22 +789,28 @@ class AnimationStudio {
   
   renderObject(obj) {
     if (obj.type === 'circle') {
-      this.ctx.strokeStyle = obj.color;
-      this.ctx.fillStyle = obj.color;
+      const currentStroke = this.ctx.strokeStyle;
+      const currentFill = this.ctx.fillStyle;
+      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.beginPath();
       this.ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.stroke();
     } else if (obj.type === 'square') {
-      this.ctx.fillStyle = obj.color;
-      this.ctx.strokeStyle = obj.color;
+      const currentStroke = this.ctx.strokeStyle;
+      const currentFill = this.ctx.fillStyle;
+      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
       this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
     } else if (obj.type === 'triangle') {
-      this.ctx.fillStyle = obj.color;
-      this.ctx.strokeStyle = obj.color;
+      const currentStroke = this.ctx.strokeStyle;
+      const currentFill = this.ctx.fillStyle;
+      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.beginPath();
       this.ctx.moveTo(obj.x + obj.width / 2, obj.y);
@@ -801,7 +820,8 @@ class AnimationStudio {
       this.ctx.fill();
       this.ctx.stroke();
     } else if (obj.type === 'line') {
-      this.ctx.strokeStyle = obj.color;
+      const currentStroke = this.ctx.strokeStyle;
+      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.lineCap = 'round';
       this.ctx.beginPath();
@@ -809,7 +829,8 @@ class AnimationStudio {
       this.ctx.lineTo(obj.endX, obj.endY);
       this.ctx.stroke();
     } else if (obj.type === 'path') {
-      this.ctx.strokeStyle = obj.color;
+      const currentStroke = this.ctx.strokeStyle;
+      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
