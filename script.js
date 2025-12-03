@@ -1486,10 +1486,8 @@ class AnimationStudio {
       // Start recording
       mediaRecorder.start();
 
-      // Play through all frames at least twice for proper encoding
+      // Play through all frames exactly once
       let frameIndex = 0;
-      let cycleCount = 0;
-      const totalCycles = Math.max(2, Math.ceil(60 / this.frames.length)); // At least 2 cycles or 60 frames
 
       const recordInterval = setInterval(() => {
         this.currentFrameIndex = frameIndex;
@@ -1512,16 +1510,11 @@ class AnimationStudio {
         
         frameIndex++;
         if (frameIndex >= this.frames.length) {
-          frameIndex = 0;
-          cycleCount++;
-          
-          if (cycleCount >= totalCycles) {
-            clearInterval(recordInterval);
-            // Wait to ensure all frames are captured
-            setTimeout(() => {
-              mediaRecorder.stop();
-            }, 500);
-          }
+          clearInterval(recordInterval);
+          // Wait to ensure all frames are captured
+          setTimeout(() => {
+            mediaRecorder.stop();
+          }, 500);
         }
       }, 1000 / this.fps);
 
