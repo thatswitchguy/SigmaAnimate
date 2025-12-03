@@ -26,6 +26,14 @@ class AnimationStudio {
     this.shapeWidth = 100;
     this.shapeHeight = 100;
 
+    // Text properties
+    this.textContent = '';
+    this.fontSize = 24;
+    this.fontFamily = 'Arial';
+
+    // Clipboard
+    this.clipboard = [];
+
     // Smart draw properties
     this.drawPoints = [];
     this.tempCanvas = document.createElement('canvas');
@@ -147,6 +155,15 @@ class AnimationStudio {
       } else if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         this.redo();
+      } else if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        this.copySelectedObjects();
+      } else if (e.ctrlKey && e.key === 'v') {
+        e.preventDefault();
+        this.pasteObjects();
+      } else if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        this.duplicateSelectedObjects();
       }
     });
 
@@ -188,6 +205,7 @@ class AnimationStudio {
     document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('mouse'));
     document.getElementById('fillBtn').addEventListener('click', () => this.setTool('fill'));
     document.getElementById('eraserBtn').addEventListener('click', () => this.setTool('eraser'));
+    document.getElementById('textBtn').addEventListener('click', () => this.setTool('text'));
     document.getElementById('clearBtn').addEventListener('click', () => this.clearFrame());
 
     // Color and brush
@@ -292,6 +310,28 @@ class AnimationStudio {
     // Undo/Redo buttons
     document.getElementById('undoBtn').addEventListener('click', () => this.undo());
     document.getElementById('redoBtn').addEventListener('click', () => this.redo());
+
+    // Text controls
+    document.getElementById('textInput').addEventListener('input', (e) => {
+      this.textContent = e.target.value;
+    });
+
+    document.getElementById('fontSize').addEventListener('input', (e) => {
+      this.fontSize = parseInt(e.target.value);
+      document.getElementById('fontSizeLabel').textContent = this.fontSize + 'px';
+    });
+
+    document.getElementById('fontFamily').addEventListener('change', (e) => {
+      this.fontFamily = e.target.value;
+    });
+
+    document.getElementById('addTextBtn').addEventListener('click', () => this.addText());
+
+    // Clipboard controls
+    document.getElementById('copyBtn').addEventListener('click', () => this.copySelectedObjects());
+    document.getElementById('pasteBtn').addEventListener('click', () => this.pasteObjects());
+    document.getElementById('duplicateBtn').addEventListener('click', () => this.duplicateSelectedObjects());
+    document.getElementById('renameBtn').addEventListener('click', () => this.renameSelectedObject());
   }
 
   setTool(tool) {
@@ -299,7 +339,7 @@ class AnimationStudio {
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
 
     // Remove all cursor classes
-    this.canvas.classList.remove('cursor-pencil', 'cursor-mouse', 'cursor-fill', 'cursor-eraser');
+    this.canvas.classList.remove('cursor-pencil', 'cursor-mouse', 'cursor-fill', 'cursor-eraser', 'cursor-text');
 
     if (tool === 'pencil') {
       document.getElementById('pencilBtn').classList.add('active');
@@ -313,6 +353,9 @@ class AnimationStudio {
     } else if (tool === 'eraser') {
       document.getElementById('eraserBtn').classList.add('active');
       this.canvas.classList.add('cursor-eraser');
+    } else if (tool === 'text') {
+      document.getElementById('textBtn').classList.add('active');
+      this.canvas.classList.add('cursor-text');
     }
   }
 
@@ -335,6 +378,27 @@ class AnimationStudio {
     if (this.tool === 'fill') {
       this.floodFill(Math.floor(pos.x), Math.floor(pos.y));
       this.saveCurrentFrame();
+      return;
+    }
+
+    if (this.tool === 'text') {
+      const text = prompt('Enter text:', this.textContent || '');
+      if (text) {
+        this.addObject({
+          type: 'text',
+          x: pos.x,
+          y: pos.y,
+          text: text,
+          fontSize: this.fontSize,
+          fontFamily: this.fontFamily,
+          color: this.color,
+          width: 100,
+          height: 30,
+          name: 'Text: ' + text.substring(0, 20)
+        });
+        this.saveCurrentFrame();
+        this.render();
+      }
       return;
     }
 
@@ -802,6 +866,9 @@ class AnimationStudio {
     if (obj.rotation === undefined) {
       obj.rotation = 0;
     }
+    if (!obj.name) {
+      obj.name = obj.type.charAt(0).toUpperCase() + obj.type.slice(1) + ' ' + (this.getCurrentFrameObjects().length + 1);
+    }
     // Pre-load image if it's an image object
     if (obj.type === 'image' && obj.src && !obj.imageElement) {
       const img = new Image();
@@ -949,6 +1016,96 @@ class AnimationStudio {
     for (const obj of this.selectedObjects) {
       obj.rotation = angle;
     }
+
+    this.saveCurrentFrame();
+    this.render();
+  }
+
+  copySelectedObjects() {
+    if (this.selectedObjects.length === 0) {
+      alert('No objects selected to copy');
+      return;
+    }
+    this.clipboard = JSON.parse(JSON.stringify(this.selectedObjects));
+    alert(`Copied ${this.clipboard.length} object(s)`);
+  }
+
+  pasteObjects() {
+    if (this.clipboard.length === 0) {
+      alert('Nothing to paste');
+      return;
+    }
+
+    const objects = this.getCurrentFrameObjects();
+    const pastedObjects = [];
+
+    for (const obj of this.clipboard) {
+      const newObj = JSON.parse(JSON.stringify(obj));
+      newObj.x += 20;
+      newObj.y += 20;
+      newObj.name = (newObj.name || 'Object') + ' (Copy)';
+
+      // Re-load images if needed
+      if (newObj.type === 'image' && newObj.src) {
+        const img = new Image();
+        img.onload = () => {
+          newObj.imageElement = img;
+          this.render();
+        };
+        img.src = newObj.src;
+      }
+
+      objects.push(newObj);
+      pastedObjects.push(newObj);
+    }
+
+    this.selectedObjects = pastedObjects;
+    this.saveCurrentFrame();
+    this.render();
+  }
+
+  duplicateSelectedObjects() {
+    if (this.selectedObjects.length === 0) {
+      alert('No objects selected to duplicate');
+      return;
+    }
+
+    this.clipboard = JSON.parse(JSON.stringify(this.selectedObjects));
+    this.pasteObjects();
+  }
+
+  renameSelectedObject() {
+    if (this.selectedObjects.length !== 1) {
+      alert('Please select exactly one object to rename');
+      return;
+    }
+
+    const obj = this.selectedObjects[0];
+    const newName = prompt('Enter new name:', obj.name || '');
+    if (newName !== null && newName.trim() !== '') {
+      obj.name = newName.trim();
+      this.render();
+    }
+  }
+
+  addText() {
+    if (!this.textContent.trim()) {
+      alert('Please enter text first');
+      return;
+    }
+
+    this.addObject({
+      type: 'text',
+      x: (this.canvas.width - 200) / 2,
+      y: (this.canvas.height - 30) / 2,
+      text: this.textContent,
+      fontSize: this.fontSize,
+      fontFamily: this.fontFamily,
+      color: this.color,
+      width: 200,
+      height: this.fontSize + 10,
+      name: 'Text: ' + this.textContent.substring(0, 20)
+    });
 
     this.saveCurrentFrame();
     this.render();
@@ -1184,6 +1341,17 @@ class AnimationStudio {
         };
         img.src = obj.src;
       }
+    } else if (obj.type === 'text') {
+      const currentFill = ctx.fillStyle;
+      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
+      ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+      ctx.textBaseline = 'top';
+      ctx.fillText(obj.text, obj.x, obj.y);
+      
+      // Update text width/height for selection
+      const metrics = ctx.measureText(obj.text);
+      obj.width = metrics.width;
+      obj.height = obj.fontSize;
     } else if (obj.type === 'group') {
       for (const child of obj.children) {
         this.renderObject(child, ctx);
@@ -1718,6 +1886,11 @@ class AnimationStudio {
       if (obj.imageElement) {
         this.ctx.drawImage(obj.imageElement, obj.x, obj.y, obj.width, obj.height);
       }
+    } else if (obj.type === 'text') {
+      this.ctx.fillStyle = obj.color;
+      this.ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+      this.ctx.textBaseline = 'top';
+      this.ctx.fillText(obj.text, obj.x, obj.y);
     } else if (obj.type === 'group') {
       for (const child of obj.children) {
         this.renderObjectForExport(child);
