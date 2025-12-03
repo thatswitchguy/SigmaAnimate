@@ -382,23 +382,24 @@ class AnimationStudio {
     }
 
     if (this.tool === 'text') {
-      const text = prompt('Enter text:', this.textContent || '');
-      if (text) {
-        this.addObject({
-          type: 'text',
-          x: pos.x,
-          y: pos.y,
-          text: text,
-          fontSize: this.fontSize,
-          fontFamily: this.fontFamily,
-          color: this.color,
-          width: 100,
-          height: 30,
-          name: 'Text: ' + text.substring(0, 20)
-        });
-        this.saveCurrentFrame();
-        this.render();
+      if (!this.textContent.trim()) {
+        alert('Please enter text in the Text section first');
+        return;
       }
+      this.addObject({
+        type: 'text',
+        x: pos.x,
+        y: pos.y,
+        text: this.textContent,
+        fontSize: this.fontSize,
+        fontFamily: this.fontFamily,
+        color: this.color,
+        width: 100,
+        height: 30,
+        name: 'Text: ' + this.textContent.substring(0, 20)
+      });
+      this.saveCurrentFrame();
+      this.render();
       return;
     }
 
@@ -1081,11 +1082,67 @@ class AnimationStudio {
     }
 
     const obj = this.selectedObjects[0];
-    const newName = prompt('Enter new name:', obj.name || '');
-    if (newName !== null && newName.trim() !== '') {
-      obj.name = newName.trim();
-      this.render();
-    }
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+    
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background: #2d2d2d; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 300px;';
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Rename Object';
+    title.style.cssText = 'margin-bottom: 15px; color: #fff;';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = obj.name || '';
+    input.style.cssText = 'width: 100%; padding: 8px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px;';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'padding: 8px 16px; background: #3d3d3d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'OK';
+    okBtn.style.cssText = 'padding: 8px 16px; background: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    
+    const closeModal = () => {
+      document.body.removeChild(modal);
+    };
+    
+    const applyRename = () => {
+      const newName = input.value.trim();
+      if (newName !== '') {
+        obj.name = newName;
+        this.render();
+      }
+      closeModal();
+    };
+    
+    cancelBtn.addEventListener('click', closeModal);
+    okBtn.addEventListener('click', applyRename);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        applyRename();
+      } else if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+    
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(okBtn);
+    dialog.appendChild(title);
+    dialog.appendChild(input);
+    dialog.appendChild(buttonContainer);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+    
+    input.focus();
+    input.select();
   }
 
   addText() {
