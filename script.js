@@ -50,7 +50,8 @@ class AnimationStudio {
     this.initializeEventListeners();
     this.render();
     this.updateTimeline();
-    this.setTool('pencil'); // Set initial cursor
+    // Set initial cursor after a small delay to ensure canvas is ready
+    setTimeout(() => this.setTool('pencil'), 0);
   }
   
   createEmptyFrame() {

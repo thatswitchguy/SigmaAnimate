@@ -311,19 +311,19 @@ input[type="checkbox"] {
 }
 
 #drawCanvas.cursor-pencil {
-  cursor: crosshair;
+  cursor: crosshair !important;
 }
 
 #drawCanvas.cursor-mouse {
-  cursor: default;
+  cursor: default !important;
 }
 
 #drawCanvas.cursor-fill {
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
 #drawCanvas.cursor-eraser {
-  cursor: cell;
+  cursor: cell !important;
 }
 
 .animation-controls {
