@@ -1018,85 +1018,85 @@ class AnimationStudio {
     }
   }
   
-  renderFrame(frame) {
+  renderFrame(frame, ctx = this.ctx) {
     for (const obj of frame.objects) {
-      this.renderObject(obj);
+      this.renderObject(obj, ctx);
     }
   }
   
-  renderObject(obj) {
+  renderObject(obj, ctx = this.ctx) {
     const rotation = obj.rotation || 0;
     const centerX = obj.x + obj.width / 2;
     const centerY = obj.y + obj.height / 2;
     
-    this.ctx.save();
-    this.ctx.translate(centerX, centerY);
-    this.ctx.rotate(rotation * Math.PI / 180);
-    this.ctx.translate(-centerX, -centerY);
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.translate(-centerX, -centerY);
     
     if (obj.type === 'circle') {
-      const currentStroke = this.ctx.strokeStyle;
-      const currentFill = this.ctx.fillStyle;
-      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.beginPath();
-      this.ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.stroke();
+      const currentStroke = ctx.strokeStyle;
+      const currentFill = ctx.fillStyle;
+      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
+      ctx.lineWidth = obj.lineWidth;
+      ctx.beginPath();
+      ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     } else if (obj.type === 'square') {
-      const currentStroke = this.ctx.strokeStyle;
-      const currentFill = this.ctx.fillStyle;
-      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-      this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      const currentStroke = ctx.strokeStyle;
+      const currentFill = ctx.fillStyle;
+      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
+      ctx.lineWidth = obj.lineWidth;
+      ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+      ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
     } else if (obj.type === 'triangle') {
-      const currentStroke = this.ctx.strokeStyle;
-      const currentFill = this.ctx.fillStyle;
-      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      this.ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.beginPath();
-      this.ctx.moveTo(obj.x + obj.width / 2, obj.y);
-      this.ctx.lineTo(obj.x, obj.y + obj.height);
-      this.ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
-      this.ctx.closePath();
-      this.ctx.fill();
-      this.ctx.stroke();
+      const currentStroke = ctx.strokeStyle;
+      const currentFill = ctx.fillStyle;
+      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
+      ctx.lineWidth = obj.lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(obj.x + obj.width / 2, obj.y);
+      ctx.lineTo(obj.x, obj.y + obj.height);
+      ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
     } else if (obj.type === 'line') {
-      const currentStroke = this.ctx.strokeStyle;
-      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.lineCap = 'round';
-      this.ctx.beginPath();
-      this.ctx.moveTo(obj.startX, obj.startY);
-      this.ctx.lineTo(obj.endX, obj.endY);
-      this.ctx.stroke();
+      const currentStroke = ctx.strokeStyle;
+      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      ctx.lineWidth = obj.lineWidth;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(obj.startX, obj.startY);
+      ctx.lineTo(obj.endX, obj.endY);
+      ctx.stroke();
     } else if (obj.type === 'path') {
-      const currentStroke = this.ctx.strokeStyle;
-      this.ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.lineCap = 'round';
-      this.ctx.lineJoin = 'round';
-      this.ctx.beginPath();
-      this.ctx.moveTo(obj.points[0].x, obj.points[0].y);
+      const currentStroke = ctx.strokeStyle;
+      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
+      ctx.lineWidth = obj.lineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(obj.points[0].x, obj.points[0].y);
       for (let i = 1; i < obj.points.length; i++) {
-        this.ctx.lineTo(obj.points[i].x, obj.points[i].y);
+        ctx.lineTo(obj.points[i].x, obj.points[i].y);
       }
-      this.ctx.stroke();
+      ctx.stroke();
     } else if (obj.type === 'image') {
       const img = new Image();
       img.src = obj.src;
-      this.ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
+      ctx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
     } else if (obj.type === 'group') {
       for (const child of obj.children) {
-        this.renderObject(child);
+        this.renderObject(child, ctx);
       }
     }
     
-    this.ctx.restore();
+    ctx.restore();
   }
   
   addFrame() {
@@ -1154,10 +1154,17 @@ class AnimationStudio {
       tempCanvas.height = this.canvas.height;
       const tempCtx = tempCanvas.getContext('2d');
       
+      // Draw background on temp canvas
+      if (this.backgroundImage) {
+        tempCtx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+      } else {
+        tempCtx.fillStyle = this.backgroundColor;
+        tempCtx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+      
+      // Render frame objects to temp canvas
       for (const obj of frame.objects) {
-        this.ctx = tempCtx;
-        this.renderObject(obj);
-        this.ctx = this.canvas.getContext('2d');
+        this.renderObject(obj, tempCtx);
       }
       
       thumbCtx.drawImage(tempCanvas, 0, 0, 80, 60);
