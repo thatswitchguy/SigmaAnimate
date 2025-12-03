@@ -236,6 +236,10 @@ class AnimationStudio {
     document.getElementById('cloudSaveBtn').addEventListener('click', () => this.saveToCloud());
     document.getElementById('cloudLoadBtn').addEventListener('click', () => this.loadFromCloud());
     document.getElementById('loadBtn').addEventListener('click', () => this.loadProject());
+    document.getElementById('uploadAnimationBtn').addEventListener('click', () => {
+      document.getElementById('animationUpload').click();
+    });
+    document.getElementById('animationUpload').addEventListener('change', (e) => this.uploadAnimation(e));
     document.getElementById('exportBtn').addEventListener('click', () => this.exportGIF());
     
     // Insert controls
@@ -1321,6 +1325,86 @@ class AnimationStudio {
     });
     
     input.click();
+  }
+  
+  async uploadAnimation(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.includes('webm')) {
+      alert('Please upload a WebM video file');
+      return;
+    }
+    
+    try {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = reject;
+      });
+      
+      // Extract frames from video
+      const extractCanvas = document.createElement('canvas');
+      const extractCtx = extractCanvas.getContext('2d');
+      
+      // Set canvas size to match video
+      extractCanvas.width = video.videoWidth;
+      extractCanvas.height = video.videoHeight;
+      this.canvas.width = video.videoWidth;
+      this.canvas.height = video.videoHeight;
+      
+      const duration = video.duration;
+      const frameRate = 12; // Default frame rate for extraction
+      const frameCount = Math.floor(duration * frameRate);
+      
+      this.frames = [];
+      
+      for (let i = 0; i < frameCount; i++) {
+        const time = (i / frameRate);
+        video.currentTime = time;
+        
+        await new Promise((resolve) => {
+          video.onseeked = resolve;
+        });
+        
+        // Draw current video frame to canvas
+        extractCtx.drawImage(video, 0, 0, extractCanvas.width, extractCanvas.height);
+        
+        // Convert canvas to image and create frame object
+        const imageData = extractCanvas.toDataURL('image/png');
+        
+        const frame = {
+          objects: [{
+            type: 'image',
+            x: 0,
+            y: 0,
+            width: extractCanvas.width,
+            height: extractCanvas.height,
+            src: imageData,
+            rotation: 0
+          }]
+        };
+        
+        this.frames.push(frame);
+      }
+      
+      URL.revokeObjectURL(video.src);
+      
+      this.currentFrameIndex = 0;
+      this.selectedObjects = [];
+      this.fps = frameRate;
+      document.getElementById('fpsInput').value = this.fps;
+      
+      this.updateTimeline();
+      this.render();
+      
+      alert(`Animation loaded successfully! ${frameCount} frames extracted.`);
+    } catch (error) {
+      alert('Error loading animation: ' + error.message);
+    }
   }
   
   async exportGIF() {
