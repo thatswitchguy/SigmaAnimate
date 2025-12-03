@@ -12,10 +12,10 @@
 <body>
   <div class="container">
     <header>
-      <h1>Animation Studio</h1>
+      <h1>Sigma Animate</h1>
       <div class="toolbar">
         <button id="pencilBtn" class="tool-btn active">✏️ Pencil (Smart Draw)</button>
-        <button id="smartDrawBtn" class="tool-btn">🖱️ Mouse</button>
+        <button id="smartDrawBtn" class="tool-btn">➤ Mouse</button>
         <button id="fillBtn" class="tool-btn">🪣 Fill</button>
         <button id="eraserBtn" class="tool-btn">🧹 Eraser</button>
         <button id="clearBtn" class="tool-btn">🗑️ Clear</button>
@@ -26,9 +26,9 @@
       <div class="file-controls">
         <button id="cloudSaveBtn">💾 Save</button>
         <button id="cloudLoadBtn">📂 Load</button>
-        <button id="downloadBtn">⬇️ Download</button>
-        <button id="loadBtn">⬆️ Upload</button>
-        <button id="exportBtn">📥 Export GIF</button>
+        <button id="downloadBtn">⬇ Download</button>
+        <button id="loadBtn">⬆ Upload</button>
+        <button id="exportBtn">↗ Export GIF</button>
       </div>
     </header>
 
@@ -37,11 +37,11 @@
         <div class="sidebar">
           <h3>Insert</h3>
           <div class="insert-tools">
-            <button id="uploadImageBtn" class="insert-btn">📷 Upload Image</button>
+            <button id="uploadImageBtn" class="insert-btn">⬆ Upload Image</button>
             <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-            <button id="circleBtn" class="insert-btn">⭕ Circle</button>
+            <button id="circleBtn" class="insert-btn">⏺ Circle</button>
             <button id="squareBtn" class="insert-btn">⬜ Square</button>
-            <button id="triangleBtn" class="insert-btn">🔺 Triangle</button>
+            <button id="triangleBtn" class="insert-btn">▲ Triangle</button>
           </div>
           <div class="resize-controls" id="resizeControls" style="display: none;">
             <h4>Resize Shape</h4>
@@ -52,9 +52,9 @@
           
           <div class="selection-controls" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
             <h4>Selection</h4>
-            <button id="groupBtn" class="insert-btn">🔗 Group</button>
+            <button id="groupBtn" class="insert-btn">🔳 Group</button>
             <button id="ungroupBtn" class="insert-btn">🔓 Ungroup</button>
-            <button id="deleteSelectedBtn" class="insert-btn">🗑️ Delete</button>
+            <button id="deleteSelectedBtn" class="insert-btn">⌫ Delete</button>
           </div>
         </div>
         
@@ -65,17 +65,17 @@
 
       <div class="animation-controls">
         <div class="playback">
-          <button id="playBtn">▶️ Play</button>
-          <button id="stopBtn">⏹️ Stop</button>
+          <button id="playBtn">▶ Play</button>
+          <button id="stopBtn">⏸ Stop</button>
           <label>FPS: <input type="number" id="fpsInput" value="12" min="1" max="60"></label>
         </div>
 
         <div class="frame-controls">
-          <button id="addFrameBtn">➕ Add Frame</button>
-          <button id="deleteFrameBtn">🗑️ Delete Frame</button>
-          <button id="duplicateFrameBtn">📋 Duplicate</button>
+          <button id="addFrameBtn">+ Add Frame</button>
+          <button id="deleteFrameBtn">⌫ Delete Frame</button>
+          <button id="duplicateFrameBtn">⿻ Duplicate</button>
           <label>
-            <input type="checkbox" id="onionSkin"> Onion Skin
+            <input type="checkbox" id="onionSkin">▒ Onion Skin
           </label>
         </div>
 
