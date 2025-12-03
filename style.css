@@ -98,13 +98,86 @@ h1 {
 main {
   flex: 1;
   display: flex;
-  flex-direction: column;
   overflow: hidden;
+}
+
+.sidebar {
+  width: 200px;
+  background: #2d2d2d;
+  border-right: 2px solid #444;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.sidebar h3, .sidebar h4 {
+  margin-bottom: 10px;
+  color: #0078d4;
+  font-size: 16px;
+}
+
+.insert-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insert-btn {
+  padding: 8px 12px;
+  background: #3d3d3d;
+  color: #fff;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.insert-btn:hover {
+  background: #4d4d4d;
+  border-color: #0078d4;
+}
+
+.resize-controls {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #444;
+}
+
+.resize-controls label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.resize-controls input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  background: #3d3d3d;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
+
+.resize-controls button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  background: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.resize-controls button:hover {
+  background: #0062ad;
 }
 
 .canvas-container {
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background: #2d2d2d;

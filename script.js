@@ -1,4 +1,6 @@
 
+import { Client } from '@replit/object-storage';
+
 class AnimationStudio {
   constructor() {
     this.canvas = document.getElementById('drawCanvas');
@@ -19,6 +21,12 @@ class AnimationStudio {
     
     this.lastX = 0;
     this.lastY = 0;
+    
+    this.selectedShape = null;
+    this.shapeWidth = 100;
+    this.shapeHeight = 100;
+    
+    this.storageClient = new Client();
     
     this.initializeEventListeners();
     this.render();
@@ -102,9 +110,37 @@ class AnimationStudio {
     });
     
     // File controls
-    document.getElementById('saveBtn').addEventListener('click', () => this.saveProject());
+    document.getElementById('cloudSaveBtn').addEventListener('click', () => this.saveToCloud());
+    document.getElementById('cloudLoadBtn').addEventListener('click', () => this.loadFromCloud());
+    document.getElementById('downloadBtn').addEventListener('click', () => this.downloadProject());
     document.getElementById('loadBtn').addEventListener('click', () => this.loadProject());
     document.getElementById('exportBtn').addEventListener('click', () => this.exportGIF());
+    
+    // Insert controls
+    document.getElementById('uploadImageBtn').addEventListener('click', () => {
+      document.getElementById('imageUpload').click();
+    });
+    
+    document.getElementById('imageUpload').addEventListener('change', (e) => this.uploadImage(e));
+    document.getElementById('circleBtn').addEventListener('click', () => this.insertShape('circle'));
+    document.getElementById('squareBtn').addEventListener('click', () => this.insertShape('square'));
+    document.getElementById('triangleBtn').addEventListener('click', () => this.insertShape('triangle'));
+    
+    // Resize controls
+    document.getElementById('shapeWidth').addEventListener('input', (e) => {
+      this.shapeWidth = parseInt(e.target.value);
+    });
+    
+    document.getElementById('shapeHeight').addEventListener('input', (e) => {
+      this.shapeHeight = parseInt(e.target.value);
+    });
+    
+    document.getElementById('applyResize').addEventListener('click', () => {
+      if (this.selectedShape) {
+        this.drawShape(this.selectedShape, this.shapeWidth, this.shapeHeight);
+        this.saveCurrentFrame();
+      }
+    });
   }
   
   setTool(tool) {
@@ -168,6 +204,62 @@ class AnimationStudio {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.saveCurrentFrame();
     this.render();
+  }
+  
+  uploadImage(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        const width = Math.min(img.width, 300);
+        const height = (img.height / img.width) * width;
+        
+        this.ctx.drawImage(img, centerX - width / 2, centerY - height / 2, width, height);
+        this.saveCurrentFrame();
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  insertShape(shape) {
+    this.selectedShape = shape;
+    document.getElementById('resizeControls').style.display = 'block';
+    this.drawShape(shape, this.shapeWidth, this.shapeHeight);
+    this.saveCurrentFrame();
+  }
+  
+  drawShape(shape, width, height) {
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 2;
+    
+    this.ctx.fillStyle = this.color;
+    this.ctx.strokeStyle = this.color;
+    this.ctx.lineWidth = 2;
+    
+    if (shape === 'circle') {
+      const radius = Math.min(width, height) / 2;
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    } else if (shape === 'square') {
+      this.ctx.fillRect(centerX - width / 2, centerY - height / 2, width, height);
+      this.ctx.strokeRect(centerX - width / 2, centerY - height / 2, width, height);
+    } else if (shape === 'triangle') {
+      this.ctx.beginPath();
+      this.ctx.moveTo(centerX, centerY - height / 2);
+      this.ctx.lineTo(centerX - width / 2, centerY + height / 2);
+      this.ctx.lineTo(centerX + width / 2, centerY + height / 2);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
   }
   
   saveCurrentFrame() {
@@ -277,7 +369,49 @@ class AnimationStudio {
     }
   }
   
-  saveProject() {
+  async saveToCloud() {
+    try {
+      const projectData = {
+        width: this.canvas.width,
+        height: this.canvas.height,
+        fps: this.fps,
+        frames: this.frames.map(frame => Array.from(frame.data))
+      };
+      
+      const dataStr = JSON.stringify(projectData);
+      await this.storageClient.uploadFromText('animation_project.json', dataStr);
+      alert('Project saved to cloud successfully!');
+    } catch (error) {
+      alert('Error saving to cloud: ' + error.message);
+    }
+  }
+  
+  async loadFromCloud() {
+    try {
+      const dataStr = await this.storageClient.downloadAsText('animation_project.json');
+      const projectData = JSON.parse(dataStr);
+      
+      this.canvas.width = projectData.width;
+      this.canvas.height = projectData.height;
+      this.fps = projectData.fps;
+      document.getElementById('fpsInput').value = this.fps;
+      
+      this.frames = projectData.frames.map(frameData => {
+        const imageData = this.ctx.createImageData(projectData.width, projectData.height);
+        imageData.data.set(frameData);
+        return imageData;
+      });
+      
+      this.currentFrameIndex = 0;
+      this.updateTimeline();
+      this.render();
+      alert('Project loaded from cloud successfully!');
+    } catch (error) {
+      alert('Error loading from cloud: ' + error.message);
+    }
+  }
+  
+  downloadProject() {
     const projectData = {
       width: this.canvas.width,
       height: this.canvas.height,
@@ -339,7 +473,7 @@ class AnimationStudio {
   }
   
   exportGIF() {
-    alert('GIF export functionality:\n\nTo export as GIF, you would need a GIF encoding library. For now, you can:\n\n1. Save your project as JSON\n2. Use the Play feature to view your animation\n3. Use screen recording software to capture the animation\n\nAlternatively, frames are saved and can be exported individually by right-clicking the canvas during playback.');
+    alert('GIF export functionality:\n\nTo export as GIF, you would need a GIF encoding library. For now, you can:\n\n1. Save your project to cloud or download as JSON\n2. Use the Play feature to view your animation\n3. Use screen recording software to capture the animation\n\nAlternatively, frames are saved and can be exported individually by right-clicking the canvas during playback.');
   }
 }
 
