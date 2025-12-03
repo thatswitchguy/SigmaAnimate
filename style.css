@@ -234,7 +234,7 @@ main {
   justify-content: center;
   align-items: center;
   background: #2d2d2d;
-  padding: 20px;
+  padding: 10px;
   overflow: auto;
 }
 
@@ -242,6 +242,9 @@ main {
   background: #fff;
   cursor: crosshair;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .animation-controls {
@@ -375,7 +378,7 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: center;
   background: #1a1a1a;
-  padding: 20px;
+  padding: 10px;
   overflow: auto;
 }
 
@@ -383,6 +386,10 @@ input[type="checkbox"] {
   background: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   cursor: crosshair;
+  max-width: calc(100vw - 250px);
+  max-height: calc(100vh - 350px);
+  width: auto;
+  height: auto;
 }
 
 #drawCanvas.cursor-pencil {
