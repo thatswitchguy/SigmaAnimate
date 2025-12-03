@@ -380,21 +380,8 @@ class AnimationStudio {
       
       if (this.tool === 'pencil' && this.drawPoints.length > 2) {
         const recognizedShape = this.recognizeShape();
-        if (recognizedShape) {
-          this.addObject(recognizedShape);
-        } else {
-          // Add freehand path as object
-          this.addObject({
-            type: 'path',
-            points: [...this.drawPoints],
-            color: this.color,
-            lineWidth: this.brushSize,
-            x: Math.min(...this.drawPoints.map(p => p.x)),
-            y: Math.min(...this.drawPoints.map(p => p.y)),
-            width: Math.max(...this.drawPoints.map(p => p.x)) - Math.min(...this.drawPoints.map(p => p.x)),
-            height: Math.max(...this.drawPoints.map(p => p.y)) - Math.min(...this.drawPoints.map(p => p.y))
-          });
-        }
+        // Always add the recognized shape or the original path
+        this.addObject(recognizedShape);
       }
       
       this.drawPoints = [];
@@ -405,7 +392,19 @@ class AnimationStudio {
   }
   
   recognizeShape() {
-    if (this.drawPoints.length < 5) return null;
+    if (this.drawPoints.length < 5) {
+      // Return original path for very short strokes
+      return {
+        type: 'path',
+        points: [...this.drawPoints],
+        color: this.color,
+        lineWidth: this.brushSize,
+        x: Math.min(...this.drawPoints.map(p => p.x)),
+        y: Math.min(...this.drawPoints.map(p => p.y)),
+        width: Math.max(...this.drawPoints.map(p => p.x)) - Math.min(...this.drawPoints.map(p => p.x)),
+        height: Math.max(...this.drawPoints.map(p => p.y)) - Math.min(...this.drawPoints.map(p => p.y))
+      };
+    }
     
     const firstPoint = this.drawPoints[0];
     const lastPoint = this.drawPoints[this.drawPoints.length - 1];
@@ -454,7 +453,17 @@ class AnimationStudio {
       }
     }
     
-    return null;
+    // If not recognized as circle or line, return original path
+    return {
+      type: 'path',
+      points: [...this.drawPoints],
+      color: this.color,
+      lineWidth: this.brushSize,
+      x: Math.min(...this.drawPoints.map(p => p.x)),
+      y: Math.min(...this.drawPoints.map(p => p.y)),
+      width: Math.max(...this.drawPoints.map(p => p.x)) - Math.min(...this.drawPoints.map(p => p.x)),
+      height: Math.max(...this.drawPoints.map(p => p.y)) - Math.min(...this.drawPoints.map(p => p.y))
+    };
   }
   
   isApproximatelyLine() {
