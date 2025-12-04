@@ -751,6 +751,14 @@ class AnimationStudio {
         for (const obj of this.selectedObjects) {
           obj.x += dx;
           obj.y += dy;
+          
+          // If it's a group, also move all children
+          if (obj.type === 'group' && obj.children) {
+            for (const child of obj.children) {
+              child.x += dx;
+              child.y += dy;
+            }
+          }
         }
 
         this.dragStartX = pos.x;
