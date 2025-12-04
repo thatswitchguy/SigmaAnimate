@@ -174,6 +174,7 @@ class AnimationStudio {
     this.canvas.addEventListener('mousemove', (e) => this.draw(e));
     this.canvas.addEventListener('mouseup', () => this.stopDrawing());
     this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+    this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
 
     // Touch events for mobile
     this.canvas.addEventListener('touchstart', (e) => {
@@ -374,6 +375,78 @@ class AnimationStudio {
     return { x, y };
   }
 
+  handleDoubleClick(e) {
+    const pos = this.getMousePos(e);
+    
+    // Check if double-clicking on a text object
+    const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+    if (clickedObject && clickedObject.type === 'text') {
+      this.editTextObject(clickedObject);
+    }
+  }
+
+  editTextObject(textObj) {
+    // Create modal for editing text
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+    
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background: #2d2d2d; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 400px;';
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Edit Text';
+    title.style.cssText = 'margin-bottom: 15px; color: #fff;';
+    
+    const textarea = document.createElement('textarea');
+    textarea.value = textObj.text;
+    textarea.style.cssText = 'width: 100%; min-height: 100px; padding: 8px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-family: inherit; resize: vertical;';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'padding: 8px 16px; background: #3d3d3d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'OK';
+    okBtn.style.cssText = 'padding: 8px 16px; background: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    
+    const closeModal = () => {
+      document.body.removeChild(modal);
+    };
+    
+    const applyEdit = () => {
+      const newText = textarea.value.trim();
+      if (newText !== '') {
+        textObj.text = newText;
+        textObj.name = 'Text: ' + newText.substring(0, 20);
+        this.saveCurrentFrame();
+        this.render();
+      }
+      closeModal();
+    };
+    
+    cancelBtn.addEventListener('click', closeModal);
+    okBtn.addEventListener('click', applyEdit);
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+    
+    buttonContainer.appendChild(cancelBtn);
+    buttonContainer.appendChild(okBtn);
+    dialog.appendChild(title);
+    dialog.appendChild(textarea);
+    dialog.appendChild(buttonContainer);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+    
+    textarea.focus();
+    textarea.select();
+  }
+
   startDrawing(e) {
     const pos = this.getMousePos(e);
 
@@ -384,7 +457,7 @@ class AnimationStudio {
     }
 
     if (this.tool === 'text') {
-      // Start creating a text box
+      // Start creating a text box - user must drag
       this.isDrawing = true;
       this.textBoxStart = { x: pos.x, y: pos.y };
       this.tempTextBox = {
@@ -565,46 +638,44 @@ class AnimationStudio {
     if (this.tool === 'text' && this.isDrawing) {
       this.isDrawing = false;
       
-      // Only create text box if it has minimum size
+      // Only create text box if user actually dragged
       const width = Math.abs(this.tempTextBox.width);
       const height = Math.abs(this.tempTextBox.height);
       
-      if (width < 20 || height < 20) {
-        // If box is too small, use default size
-        this.addObject({
-          type: 'text',
-          x: this.tempTextBox.x,
-          y: this.tempTextBox.y,
-          text: this.textContent || 'Enter text...',
-          fontSize: this.fontSize,
-          fontFamily: this.fontFamily,
-          color: this.color,
-          width: 200,
-          height: Math.max(this.fontSize + 20, 50),
-          name: 'Text: ' + (this.textContent || 'Enter text...').substring(0, 20)
-        });
-      } else {
-        // Normalize coordinates if dragged backwards
-        const x = this.tempTextBox.width < 0 ? this.tempTextBox.x + this.tempTextBox.width : this.tempTextBox.x;
-        const y = this.tempTextBox.height < 0 ? this.tempTextBox.y + this.tempTextBox.height : this.tempTextBox.y;
-        
-        this.addObject({
-          type: 'text',
-          x: x,
-          y: y,
-          text: this.textContent || 'Enter text...',
-          fontSize: this.fontSize,
-          fontFamily: this.fontFamily,
-          color: this.color,
-          width: width,
-          height: height,
-          name: 'Text: ' + (this.textContent || 'Enter text...').substring(0, 20)
-        });
+      if (width < 30 || height < 30) {
+        // If box is too small, don't create it - user probably just clicked
+        this.tempTextBox = null;
+        this.render();
+        return;
       }
       
+      // Normalize coordinates if dragged backwards
+      const x = this.tempTextBox.width < 0 ? this.tempTextBox.x + this.tempTextBox.width : this.tempTextBox.x;
+      const y = this.tempTextBox.height < 0 ? this.tempTextBox.y + this.tempTextBox.height : this.tempTextBox.y;
+      
+      const newTextObj = {
+        type: 'text',
+        x: x,
+        y: y,
+        text: this.textContent || 'Double-click to edit',
+        fontSize: this.fontSize,
+        fontFamily: this.fontFamily,
+        color: this.color,
+        width: width,
+        height: height,
+        name: 'Text: ' + (this.textContent || 'Double-click to edit').substring(0, 20)
+      };
+      
+      this.addObject(newTextObj);
       this.tempTextBox = null;
       this.saveCurrentFrame();
       this.render();
+      
+      // Automatically open edit dialog for new text box
+      setTimeout(() => {
+        this.editTextObject(newTextObj);
+      }, 100);
+      
       return;
     }
 
