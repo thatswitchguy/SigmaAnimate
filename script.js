@@ -1163,13 +1163,22 @@ class AnimationStudio {
     const maxX = Math.max(...this.selectedObjects.map(o => o.x + o.width));
     const maxY = Math.max(...this.selectedObjects.map(o => o.y + o.height));
 
+    // Adjust children coordinates to be relative to group origin
+    const children = this.selectedObjects.map(obj => {
+      const childCopy = JSON.parse(JSON.stringify(obj));
+      childCopy.x = obj.x - minX;
+      childCopy.y = obj.y - minY;
+      return childCopy;
+    });
+
     const group = {
       type: 'group',
       x: minX,
       y: minY,
       width: maxX - minX,
       height: maxY - minY,
-      children: [...this.selectedObjects]
+      children: children,
+      rotation: 0
     };
 
     const objects = this.getCurrentFrameObjects();
@@ -1197,9 +1206,17 @@ class AnimationStudio {
     const index = objects.indexOf(group);
 
     if (index !== -1) {
+      // Restore children to absolute coordinates
+      const restoredChildren = group.children.map(child => {
+        const restored = JSON.parse(JSON.stringify(child));
+        restored.x = child.x + group.x;
+        restored.y = child.y + group.y;
+        return restored;
+      });
+
       objects.splice(index, 1);
-      objects.push(...group.children);
-      this.selectedObjects = [...group.children];
+      objects.push(...restoredChildren);
+      this.selectedObjects = [...restoredChildren];
       this.saveCurrentFrame();
       this.render();
     }
