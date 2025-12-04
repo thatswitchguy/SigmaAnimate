@@ -1278,12 +1278,9 @@ class AnimationStudio {
     const maxX = Math.max(...this.selectedObjects.map(o => o.x + o.width));
     const maxY = Math.max(...this.selectedObjects.map(o => o.y + o.height));
 
-    // Adjust children coordinates to be relative to group origin
+    // Keep children coordinates as absolute, don't convert to relative yet
     const children = this.selectedObjects.map(obj => {
-      const childCopy = JSON.parse(JSON.stringify(obj));
-      childCopy.x = obj.x - minX;
-      childCopy.y = obj.y - minY;
-      return childCopy;
+      return JSON.parse(JSON.stringify(obj));
     });
 
     const group = {
@@ -1321,11 +1318,9 @@ class AnimationStudio {
     const index = objects.indexOf(group);
 
     if (index !== -1) {
-      // Restore children to absolute coordinates
+      // Children already have absolute coordinates, just restore them
       const restoredChildren = group.children.map(child => {
         const restored = JSON.parse(JSON.stringify(child));
-        restored.x = child.x + group.x;
-        restored.y = child.y + group.y;
         
         // Reload image if it's an image object
         if (restored.type === 'image' && restored.src) {
@@ -1910,12 +1905,9 @@ class AnimationStudio {
       ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
       ctx.setLineDash([]);
     } else if (obj.type === 'group') {
-      // Calculate the offset for child objects based on group position
-      const childOffsetX = obj.x;
-      const childOffsetY = obj.y;
-      
+      // Render children with their absolute coordinates (no offset needed)
       for (const child of obj.children) {
-        this.renderObject(child, ctx, childOffsetX, childOffsetY);
+        this.renderObject(child, ctx, groupOffsetX, groupOffsetY);
       }
     }
 
@@ -2577,11 +2569,9 @@ class AnimationStudio {
       this.ctx.textBaseline = 'top';
       this.ctx.fillText(obj.text, obj.x + groupOffsetX, obj.y + groupOffsetY);
     } else if (obj.type === 'group') {
-      const childOffsetX = obj.x;
-      const childOffsetY = obj.y;
-      
+      // Render children with their absolute coordinates (no additional offset)
       for (const child of obj.children) {
-        this.renderObjectForExport(child, childOffsetX, childOffsetY);
+        this.renderObjectForExport(child, groupOffsetX, groupOffsetY);
       }
     }
 
