@@ -1079,17 +1079,34 @@ class AnimationStudio {
 
     const obj = this.selectedObjects[0];
     const handleSize = 8;
+    const rotation = obj.rotation || 0;
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    
+    // Calculate rotated handle positions
+    const rotatePoint = (px, py, cx, cy, angle) => {
+      const rad = angle * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const dx = px - cx;
+      const dy = py - cy;
+      return {
+        x: cx + dx * cos - dy * sin,
+        y: cy + dx * sin + dy * cos
+      };
+    };
 
-    const handles = {
+    const corners = {
       nw: { x: obj.x, y: obj.y },
       ne: { x: obj.x + obj.width, y: obj.y },
       sw: { x: obj.x, y: obj.y + obj.height },
       se: { x: obj.x + obj.width, y: obj.y + obj.height }
     };
-
-    for (const [name, pos] of Object.entries(handles)) {
-      if (x >= pos.x - handleSize && x <= pos.x + handleSize &&
-          y >= pos.y - handleSize && y <= pos.y + handleSize) {
+    
+    for (const [name, pos] of Object.entries(corners)) {
+      const rotated = rotatePoint(pos.x, pos.y, centerX, centerY, rotation);
+      if (x >= rotated.x - handleSize && x <= rotated.x + handleSize &&
+          y >= rotated.y - handleSize && y <= rotated.y + handleSize) {
         return name;
       }
     }
@@ -1102,11 +1119,33 @@ class AnimationStudio {
 
     const obj = this.selectedObjects[0];
     const handleSize = 8;
-    const rotateHandleY = obj.y - 20;
-    const rotateHandleX = obj.x + obj.width / 2;
+    const rotation = obj.rotation || 0;
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    
+    // Calculate rotated handle position
+    const rotatePoint = (px, py, cx, cy, angle) => {
+      const rad = angle * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const dx = px - cx;
+      const dy = py - cy;
+      return {
+        x: cx + dx * cos - dy * sin,
+        y: cy + dx * sin + dy * cos
+      };
+    };
+    
+    const rotateHandleOffset = rotatePoint(
+      obj.x + obj.width / 2,
+      obj.y - 20,
+      centerX,
+      centerY,
+      rotation
+    );
 
-    if (x >= rotateHandleX - handleSize && x <= rotateHandleX + handleSize &&
-        y >= rotateHandleY - handleSize && y <= rotateHandleY + handleSize) {
+    if (x >= rotateHandleOffset.x - handleSize && x <= rotateHandleOffset.x + handleSize &&
+        y >= rotateHandleOffset.y - handleSize && y <= rotateHandleOffset.y + handleSize) {
       return true;
     }
 
@@ -1348,6 +1387,21 @@ class AnimationStudio {
       if (this.backgroundImage) {
         this.backgroundImage.src = prevState.backgroundImage;
       }
+      
+      // Reload all images in frames
+      for (const frame of this.frames) {
+        for (const obj of frame.objects) {
+          if (obj.type === 'image' && obj.src) {
+            const img = new Image();
+            img.onload = () => {
+              obj.imageElement = img;
+              this.render();
+            };
+            img.src = obj.src;
+          }
+        }
+      }
+      
       document.getElementById('backgroundColorPicker').value = this.backgroundColor;
       this.render();
       this.updateTimeline();
@@ -1366,6 +1420,21 @@ class AnimationStudio {
       if (this.backgroundImage) {
         this.backgroundImage.src = nextState.backgroundImage;
       }
+      
+      // Reload all images in frames
+      for (const frame of this.frames) {
+        for (const obj of frame.objects) {
+          if (obj.type === 'image' && obj.src) {
+            const img = new Image();
+            img.onload = () => {
+              obj.imageElement = img;
+              this.render();
+            };
+            img.src = obj.src;
+          }
+        }
+      }
+      
       document.getElementById('backgroundColorPicker').value = this.backgroundColor;
       this.render();
       this.updateTimeline();
