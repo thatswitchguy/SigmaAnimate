@@ -1444,7 +1444,16 @@ class AnimationStudio {
       this.ctx.setLineDash([5, 5]);
 
       for (const obj of this.selectedObjects) {
+        const rotation = obj.rotation || 0;
+        const centerX = obj.x + obj.width / 2;
+        const centerY = obj.y + obj.height / 2;
+
+        this.ctx.save();
+        this.ctx.translate(centerX, centerY);
+        this.ctx.rotate(rotation * Math.PI / 180);
+        this.ctx.translate(-centerX, -centerY);
         this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+        this.ctx.restore();
       }
 
       this.ctx.setLineDash([]);
@@ -1454,31 +1463,67 @@ class AnimationStudio {
         const obj = this.selectedObjects[0];
         const handleSize = 8;
         this.ctx.fillStyle = '#0078d4';
+        
+        const rotation = obj.rotation || 0;
+        const centerX = obj.x + obj.width / 2;
+        const centerY = obj.y + obj.height / 2;
 
-        const handles = [
+        // Calculate rotated handle positions
+        const corners = [
           { x: obj.x, y: obj.y },
           { x: obj.x + obj.width, y: obj.y },
           { x: obj.x, y: obj.y + obj.height },
           { x: obj.x + obj.width, y: obj.y + obj.height }
         ];
 
-        for (const handle of handles) {
+        const rotatePoint = (px, py, cx, cy, angle) => {
+          const rad = angle * Math.PI / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          const dx = px - cx;
+          const dy = py - cy;
+          return {
+            x: cx + dx * cos - dy * sin,
+            y: cy + dx * sin + dy * cos
+          };
+        };
+
+        const rotatedCorners = corners.map(corner => 
+          rotatePoint(corner.x, corner.y, centerX, centerY, rotation)
+        );
+
+        for (const handle of rotatedCorners) {
           this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         }
 
         // Draw rotation handle
-        const rotateHandleY = obj.y - 20;
-        const rotateHandleX = obj.x + obj.width / 2;
+        const rotateHandleOffset = rotatePoint(
+          obj.x + obj.width / 2,
+          obj.y - 20,
+          centerX,
+          centerY,
+          rotation
+        );
+        
         this.ctx.beginPath();
-        this.ctx.arc(rotateHandleX, rotateHandleY, handleSize / 2, 0, Math.PI * 2);
+        this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
         this.ctx.fill();
 
         // Draw line connecting rotation handle
         this.ctx.strokeStyle = '#0078d4';
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
-        this.ctx.moveTo(rotateHandleX, rotateHandleY);
-        this.ctx.lineTo(obj.x + obj.width / 2, obj.y);
+        this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
+        
+        const topCenterRotated = rotatePoint(
+          obj.x + obj.width / 2,
+          obj.y,
+          centerX,
+          centerY,
+          rotation
+        );
+        
+        this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
         this.ctx.stroke();
       }
     }
