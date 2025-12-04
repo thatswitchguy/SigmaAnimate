@@ -1494,8 +1494,10 @@ class AnimationStudio {
   }
 
   saveCurrentFrame() {
-    // Deep copy the current frame's objects
-    const currentFrameState = JSON.parse(JSON.stringify(this.frames[this.currentFrameIndex].objects));
+    // If we're not at the end of history, remove everything after current position
+    if (this.historyIndex < this.history.length - 1) {
+      this.history = this.history.slice(0, this.historyIndex + 1);
+    }
 
     // Add to history
     this.history.push({
@@ -1503,9 +1505,11 @@ class AnimationStudio {
       currentFrameIndex: this.currentFrameIndex,
       selectedObjects: JSON.parse(JSON.stringify(this.selectedObjects)),
       backgroundColor: this.backgroundColor,
-      backgroundImage: this.backgroundImage ? this.backgroundImage.src : null // Store src for re-loading
+      backgroundImage: this.backgroundImage ? this.backgroundImage.src : null
     });
-    this.historyIndex++;
+    
+    // Move index to the new state
+    this.historyIndex = this.history.length - 1;
 
     // Trim history if it exceeds a certain limit (e.g., 50 states)
     if (this.history.length > 50) {
@@ -1519,83 +1523,60 @@ class AnimationStudio {
   undo() {
     if (this.historyIndex > 0) {
       this.historyIndex--;
-      const prevState = this.history[this.historyIndex];
-      this.frames = JSON.parse(JSON.stringify(prevState.frames));
-      this.currentFrameIndex = prevState.currentFrameIndex;
-      this.selectedObjects = JSON.parse(JSON.stringify(prevState.selectedObjects));
-      this.backgroundColor = prevState.backgroundColor;
-      this.backgroundImage = prevState.backgroundImage ? new Image() : null;
-      if (this.backgroundImage) {
-        this.backgroundImage.src = prevState.backgroundImage;
-      }
-      
-      // Reload all images in frames and groups
-      const reloadImages = (obj) => {
-        if (obj.type === 'image' && obj.src) {
-          const img = new Image();
-          img.onload = () => {
-            obj.imageElement = img;
-            this.render();
-          };
-          img.src = obj.src;
-        } else if (obj.type === 'group' && obj.children) {
-          for (const child of obj.children) {
-            reloadImages(child);
-          }
-        }
-      };
-      
-      for (const frame of this.frames) {
-        for (const obj of frame.objects) {
-          reloadImages(obj);
-        }
-      }
-      
-      document.getElementById('backgroundColorPicker').value = this.backgroundColor;
-      this.render();
-      this.updateTimeline();
+      this.restoreHistoryState(this.history[this.historyIndex]);
     }
   }
 
   redo() {
     if (this.historyIndex < this.history.length - 1) {
       this.historyIndex++;
-      const nextState = this.history[this.historyIndex];
-      this.frames = JSON.parse(JSON.stringify(nextState.frames));
-      this.currentFrameIndex = nextState.currentFrameIndex;
-      this.selectedObjects = JSON.parse(JSON.stringify(nextState.selectedObjects));
-      this.backgroundColor = nextState.backgroundColor;
-      this.backgroundImage = nextState.backgroundImage ? new Image() : null;
-      if (this.backgroundImage) {
-        this.backgroundImage.src = nextState.backgroundImage;
-      }
-      
-      // Reload all images in frames and groups
-      const reloadImages = (obj) => {
-        if (obj.type === 'image' && obj.src) {
-          const img = new Image();
-          img.onload = () => {
-            obj.imageElement = img;
-            this.render();
-          };
-          img.src = obj.src;
-        } else if (obj.type === 'group' && obj.children) {
-          for (const child of obj.children) {
-            reloadImages(child);
-          }
-        }
-      };
-      
-      for (const frame of this.frames) {
-        for (const obj of frame.objects) {
-          reloadImages(obj);
-        }
-      }
-      
-      document.getElementById('backgroundColorPicker').value = this.backgroundColor;
-      this.render();
-      this.updateTimeline();
+      this.restoreHistoryState(this.history[this.historyIndex]);
     }
+  }
+
+  restoreHistoryState(state) {
+    this.frames = JSON.parse(JSON.stringify(state.frames));
+    this.currentFrameIndex = state.currentFrameIndex;
+    this.selectedObjects = JSON.parse(JSON.stringify(state.selectedObjects));
+    this.backgroundColor = state.backgroundColor;
+    
+    // Restore background image
+    if (state.backgroundImage) {
+      const img = new Image();
+      img.onload = () => {
+        this.backgroundImage = img;
+        this.render();
+      };
+      img.src = state.backgroundImage;
+    } else {
+      this.backgroundImage = null;
+    }
+    
+    // Reload all images in frames and groups
+    const reloadImages = (obj) => {
+      if (obj.type === 'image' && obj.src) {
+        const img = new Image();
+        img.onload = () => {
+          obj.imageElement = img;
+          this.render();
+        };
+        img.src = obj.src;
+      } else if (obj.type === 'group' && obj.children) {
+        for (const child of obj.children) {
+          reloadImages(child);
+        }
+      }
+    };
+    
+    for (const frame of this.frames) {
+      for (const obj of frame.objects) {
+        reloadImages(obj);
+      }
+    }
+    
+    document.getElementById('backgroundColorPicker').value = this.backgroundColor;
+    this.render();
+    this.updateTimeline();
   }
 
   render() {
