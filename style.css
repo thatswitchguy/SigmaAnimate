@@ -435,7 +435,7 @@ input[type="checkbox"] {
 }
 
 #drawCanvas.cursor-mouse {
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3 L3 17 L9 11 L17 11 Z" fill="black" stroke="white" stroke-width="1"/></svg>') 0 0, default !important;
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 3 L4 16 L8 12 L11 19 L13 18 L10 11 L16 11 L4 3 Z" fill="white" stroke="black" stroke-width="1.5"/></svg>') 0 0, default !important;
 }
 
 #drawCanvas.cursor-fill {
