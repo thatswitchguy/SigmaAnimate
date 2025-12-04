@@ -1211,6 +1211,17 @@ class AnimationStudio {
         const restored = JSON.parse(JSON.stringify(child));
         restored.x = child.x + group.x;
         restored.y = child.y + group.y;
+        
+        // Reload image if it's an image object
+        if (restored.type === 'image' && restored.src) {
+          const img = new Image();
+          img.onload = () => {
+            restored.imageElement = img;
+            this.render();
+          };
+          img.src = restored.src;
+        }
+        
         return restored;
       });
 
@@ -1405,17 +1416,25 @@ class AnimationStudio {
         this.backgroundImage.src = prevState.backgroundImage;
       }
       
-      // Reload all images in frames
+      // Reload all images in frames and groups
+      const reloadImages = (obj) => {
+        if (obj.type === 'image' && obj.src) {
+          const img = new Image();
+          img.onload = () => {
+            obj.imageElement = img;
+            this.render();
+          };
+          img.src = obj.src;
+        } else if (obj.type === 'group' && obj.children) {
+          for (const child of obj.children) {
+            reloadImages(child);
+          }
+        }
+      };
+      
       for (const frame of this.frames) {
         for (const obj of frame.objects) {
-          if (obj.type === 'image' && obj.src) {
-            const img = new Image();
-            img.onload = () => {
-              obj.imageElement = img;
-              this.render();
-            };
-            img.src = obj.src;
-          }
+          reloadImages(obj);
         }
       }
       
@@ -1438,17 +1457,25 @@ class AnimationStudio {
         this.backgroundImage.src = nextState.backgroundImage;
       }
       
-      // Reload all images in frames
+      // Reload all images in frames and groups
+      const reloadImages = (obj) => {
+        if (obj.type === 'image' && obj.src) {
+          const img = new Image();
+          img.onload = () => {
+            obj.imageElement = img;
+            this.render();
+          };
+          img.src = obj.src;
+        } else if (obj.type === 'group' && obj.children) {
+          for (const child of obj.children) {
+            reloadImages(child);
+          }
+        }
+      };
+      
       for (const frame of this.frames) {
         for (const obj of frame.objects) {
-          if (obj.type === 'image' && obj.src) {
-            const img = new Image();
-            img.onload = () => {
-              obj.imageElement = img;
-              this.render();
-            };
-            img.src = obj.src;
-          }
+          reloadImages(obj);
         }
       }
       
