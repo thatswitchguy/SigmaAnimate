@@ -435,7 +435,7 @@ input[type="checkbox"] {
 }
 
 #drawCanvas.cursor-mouse {
-  cursor: default !important;
+  cursor: url('attached_assets/mouse_1764871328843.jpg') 12 12, default !important;
 }
 
 #drawCanvas.cursor-fill {
