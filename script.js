@@ -314,21 +314,7 @@ class AnimationStudio {
     document.getElementById('undoBtn').addEventListener('click', () => this.undo());
     document.getElementById('redoBtn').addEventListener('click', () => this.redo());
 
-    // Text controls
-    document.getElementById('textInput').addEventListener('input', (e) => {
-      this.textContent = e.target.value;
-    });
-
-    document.getElementById('fontSize').addEventListener('input', (e) => {
-      this.fontSize = parseInt(e.target.value);
-      document.getElementById('fontSizeLabel').textContent = this.fontSize + 'px';
-    });
-
-    document.getElementById('fontFamily').addEventListener('change', (e) => {
-      this.fontFamily = e.target.value;
-    });
-
-    document.getElementById('addTextBtn').addEventListener('click', () => this.addText());
+    
 
     // Clipboard controls
     document.getElementById('copyBtn').addEventListener('click', () => this.copySelectedObjects());
@@ -401,6 +387,58 @@ class AnimationStudio {
     textarea.value = textObj.text;
     textarea.style.cssText = 'width: 100%; min-height: 100px; padding: 8px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-family: inherit; resize: vertical;';
     
+    // Font size control
+    const fontSizeContainer = document.createElement('div');
+    fontSizeContainer.style.cssText = 'margin-bottom: 15px;';
+    
+    const fontSizeLabel = document.createElement('label');
+    fontSizeLabel.style.cssText = 'display: block; margin-bottom: 5px; color: #ccc;';
+    fontSizeLabel.textContent = 'Font Size: ';
+    
+    const fontSizeInput = document.createElement('input');
+    fontSizeInput.type = 'range';
+    fontSizeInput.min = '10';
+    fontSizeInput.max = '72';
+    fontSizeInput.value = textObj.fontSize || 24;
+    fontSizeInput.style.cssText = 'width: 100%;';
+    
+    const fontSizeValue = document.createElement('span');
+    fontSizeValue.style.cssText = 'font-size: 12px; color: #aaa;';
+    fontSizeValue.textContent = (textObj.fontSize || 24) + 'px';
+    
+    fontSizeInput.addEventListener('input', (e) => {
+      fontSizeValue.textContent = e.target.value + 'px';
+    });
+    
+    fontSizeLabel.appendChild(fontSizeInput);
+    fontSizeContainer.appendChild(fontSizeLabel);
+    fontSizeContainer.appendChild(fontSizeValue);
+    
+    // Font family control
+    const fontFamilyContainer = document.createElement('div');
+    fontFamilyContainer.style.cssText = 'margin-bottom: 15px;';
+    
+    const fontFamilyLabel = document.createElement('label');
+    fontFamilyLabel.style.cssText = 'display: block; margin-bottom: 5px; color: #ccc;';
+    fontFamilyLabel.textContent = 'Font Family:';
+    
+    const fontFamilySelect = document.createElement('select');
+    fontFamilySelect.style.cssText = 'width: 100%; padding: 6px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px;';
+    
+    const fonts = ['Arial', 'Times New Roman', 'Courier New', 'Comic Sans MS', 'Impact', 'Verdana', 'Georgia', 'Trebuchet MS'];
+    fonts.forEach(font => {
+      const option = document.createElement('option');
+      option.value = font;
+      option.textContent = font;
+      if (font === (textObj.fontFamily || 'Arial')) {
+        option.selected = true;
+      }
+      fontFamilySelect.appendChild(option);
+    });
+    
+    fontFamilyContainer.appendChild(fontFamilyLabel);
+    fontFamilyContainer.appendChild(fontFamilySelect);
+    
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
     
@@ -420,6 +458,8 @@ class AnimationStudio {
       const newText = textarea.value.trim();
       if (newText !== '') {
         textObj.text = newText;
+        textObj.fontSize = parseInt(fontSizeInput.value);
+        textObj.fontFamily = fontFamilySelect.value;
         textObj.name = 'Text: ' + newText.substring(0, 20);
         this.saveCurrentFrame();
         this.render();
@@ -439,6 +479,8 @@ class AnimationStudio {
     buttonContainer.appendChild(okBtn);
     dialog.appendChild(title);
     dialog.appendChild(textarea);
+    dialog.appendChild(fontSizeContainer);
+    dialog.appendChild(fontFamilyContainer);
     dialog.appendChild(buttonContainer);
     modal.appendChild(dialog);
     document.body.appendChild(modal);
@@ -921,14 +963,22 @@ class AnimationStudio {
         const width = Math.min(img.width, 300);
         const height = (img.height / img.width) * width;
 
-        this.addObject({
+        const imageObj = {
           type: 'image',
           x: (this.canvas.width - width) / 2,
           y: (this.canvas.height - height) / 2,
           width: width,
           height: height,
-          src: event.target.result
-        });
+          src: event.target.result,
+          rotation: 0,
+          name: 'Image ' + (this.getCurrentFrameObjects().length + 1)
+        };
+
+        this.addObject(imageObj);
+        
+        // Automatically select the image so user can resize/rotate it
+        this.selectedObjects = [imageObj];
+        this.setTool('mouse');
 
         this.saveCurrentFrame();
         this.render();
@@ -1261,12 +1311,6 @@ class AnimationStudio {
     
     input.focus();
     input.select();
-  }
-
-  addText() {
-    // Switch to text tool to draw a text box
-    this.setTool('text');
-    alert('Click and drag on the canvas to create a text box');
   }
 
   saveCurrentFrame() {
