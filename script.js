@@ -751,14 +751,6 @@ class AnimationStudio {
         for (const obj of this.selectedObjects) {
           obj.x += dx;
           obj.y += dy;
-          
-          // If it's a group, also move all children
-          if (obj.type === 'group' && obj.children) {
-            for (const child of obj.children) {
-              child.x += dx;
-              child.y += dy;
-            }
-          }
         }
 
         this.dragStartX = pos.x;
@@ -1286,9 +1278,12 @@ class AnimationStudio {
     const maxX = Math.max(...this.selectedObjects.map(o => o.x + o.width));
     const maxY = Math.max(...this.selectedObjects.map(o => o.y + o.height));
 
-    // Keep children coordinates as absolute, don't convert to relative yet
+    // Convert children coordinates to relative positions within the group
     const children = this.selectedObjects.map(obj => {
-      return JSON.parse(JSON.stringify(obj));
+      const childCopy = JSON.parse(JSON.stringify(obj));
+      childCopy.x = obj.x - minX;
+      childCopy.y = obj.y - minY;
+      return childCopy;
     });
 
     const group = {
@@ -1326,9 +1321,11 @@ class AnimationStudio {
     const index = objects.indexOf(group);
 
     if (index !== -1) {
-      // Children already have absolute coordinates, just restore them
+      // Convert children back to absolute coordinates
       const restoredChildren = group.children.map(child => {
         const restored = JSON.parse(JSON.stringify(child));
+        restored.x = child.x + group.x;
+        restored.y = child.y + group.y;
         
         // Reload image if it's an image object
         if (restored.type === 'image' && restored.src) {
@@ -1913,9 +1910,12 @@ class AnimationStudio {
       ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
       ctx.setLineDash([]);
     } else if (obj.type === 'group') {
-      // Render children with their absolute coordinates (no offset needed)
+      // Render children with group position as offset
+      const childOffsetX = obj.x + groupOffsetX;
+      const childOffsetY = obj.y + groupOffsetY;
+      
       for (const child of obj.children) {
-        this.renderObject(child, ctx, groupOffsetX, groupOffsetY);
+        this.renderObject(child, ctx, childOffsetX, childOffsetY);
       }
     }
 
@@ -2577,9 +2577,12 @@ class AnimationStudio {
       this.ctx.textBaseline = 'top';
       this.ctx.fillText(obj.text, obj.x + groupOffsetX, obj.y + groupOffsetY);
     } else if (obj.type === 'group') {
-      // Render children with their absolute coordinates (no additional offset)
+      // Render children with group position as offset
+      const childOffsetX = obj.x + groupOffsetX;
+      const childOffsetY = obj.y + groupOffsetY;
+      
       for (const child of obj.children) {
-        this.renderObjectForExport(child, groupOffsetX, groupOffsetY);
+        this.renderObjectForExport(child, childOffsetX, childOffsetY);
       }
     }
 
