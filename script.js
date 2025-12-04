@@ -30,6 +30,8 @@ class AnimationStudio {
     this.textContent = '';
     this.fontSize = 24;
     this.fontFamily = 'Arial';
+    this.textBoxStart = null;
+    this.tempTextBox = null;
 
     // Clipboard
     this.clipboard = [];
@@ -382,24 +384,15 @@ class AnimationStudio {
     }
 
     if (this.tool === 'text') {
-      if (!this.textContent.trim()) {
-        alert('Please enter text in the Text section first');
-        return;
-      }
-      this.addObject({
-        type: 'text',
+      // Start creating a text box
+      this.isDrawing = true;
+      this.textBoxStart = { x: pos.x, y: pos.y };
+      this.tempTextBox = {
         x: pos.x,
         y: pos.y,
-        text: this.textContent,
-        fontSize: this.fontSize,
-        fontFamily: this.fontFamily,
-        color: this.color,
-        width: 100,
-        height: 30,
-        name: 'Text: ' + this.textContent.substring(0, 20)
-      });
-      this.saveCurrentFrame();
-      this.render();
+        width: 0,
+        height: 0
+      };
       return;
     }
 
@@ -469,6 +462,14 @@ class AnimationStudio {
 
   draw(e) {
     const pos = this.getMousePos(e);
+
+    if (this.tool === 'text' && this.isDrawing) {
+      // Update text box size
+      this.tempTextBox.width = pos.x - this.tempTextBox.x;
+      this.tempTextBox.height = pos.y - this.tempTextBox.y;
+      this.render();
+      return;
+    }
 
     if (this.tool === 'mouse') {
       if (this.isRotating && this.selectedObjects.length === 1) {
@@ -561,6 +562,52 @@ class AnimationStudio {
   }
 
   stopDrawing() {
+    if (this.tool === 'text' && this.isDrawing) {
+      this.isDrawing = false;
+      
+      // Only create text box if it has minimum size
+      const width = Math.abs(this.tempTextBox.width);
+      const height = Math.abs(this.tempTextBox.height);
+      
+      if (width < 20 || height < 20) {
+        // If box is too small, use default size
+        this.addObject({
+          type: 'text',
+          x: this.tempTextBox.x,
+          y: this.tempTextBox.y,
+          text: this.textContent || 'Enter text...',
+          fontSize: this.fontSize,
+          fontFamily: this.fontFamily,
+          color: this.color,
+          width: 200,
+          height: Math.max(this.fontSize + 20, 50),
+          name: 'Text: ' + (this.textContent || 'Enter text...').substring(0, 20)
+        });
+      } else {
+        // Normalize coordinates if dragged backwards
+        const x = this.tempTextBox.width < 0 ? this.tempTextBox.x + this.tempTextBox.width : this.tempTextBox.x;
+        const y = this.tempTextBox.height < 0 ? this.tempTextBox.y + this.tempTextBox.height : this.tempTextBox.y;
+        
+        this.addObject({
+          type: 'text',
+          x: x,
+          y: y,
+          text: this.textContent || 'Enter text...',
+          fontSize: this.fontSize,
+          fontFamily: this.fontFamily,
+          color: this.color,
+          width: width,
+          height: height,
+          name: 'Text: ' + (this.textContent || 'Enter text...').substring(0, 20)
+        });
+      }
+      
+      this.tempTextBox = null;
+      this.saveCurrentFrame();
+      this.render();
+      return;
+    }
+
     if (this.tool === 'mouse') {
       if (this.isRotating) {
         this.isRotating = false;
@@ -1146,26 +1193,9 @@ class AnimationStudio {
   }
 
   addText() {
-    if (!this.textContent.trim()) {
-      alert('Please enter text first');
-      return;
-    }
-
-    this.addObject({
-      type: 'text',
-      x: (this.canvas.width - 200) / 2,
-      y: (this.canvas.height - 30) / 2,
-      text: this.textContent,
-      fontSize: this.fontSize,
-      fontFamily: this.fontFamily,
-      color: this.color,
-      width: 200,
-      height: this.fontSize + 10,
-      name: 'Text: ' + this.textContent.substring(0, 20)
-    });
-
-    this.saveCurrentFrame();
-    this.render();
+    // Switch to text tool to draw a text box
+    this.setTool('text');
+    alert('Click and drag on the canvas to create a text box');
   }
 
   saveCurrentFrame() {
@@ -1254,6 +1284,27 @@ class AnimationStudio {
     // Draw temp canvas (for drawing preview)
     if (this.isDrawing && this.tool === 'pencil') {
       this.ctx.drawImage(this.tempCanvas, 0, 0);
+    }
+
+    // Draw text box preview
+    if (this.tool === 'text' && this.isDrawing && this.tempTextBox) {
+      this.ctx.strokeStyle = '#0078d4';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([5, 5]);
+      this.ctx.strokeRect(
+        this.tempTextBox.x,
+        this.tempTextBox.y,
+        this.tempTextBox.width,
+        this.tempTextBox.height
+      );
+      this.ctx.setLineDash([]);
+      
+      // Show preview text
+      this.ctx.fillStyle = this.color;
+      this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+      this.ctx.textBaseline = 'top';
+      const previewText = this.textContent || 'Enter text...';
+      this.ctx.fillText(previewText, this.tempTextBox.x + 5, this.tempTextBox.y + 5);
     }
 
     // Draw selection box
@@ -1403,12 +1454,40 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
       ctx.textBaseline = 'top';
-      ctx.fillText(obj.text, obj.x, obj.y);
       
-      // Update text width/height for selection
-      const metrics = ctx.measureText(obj.text);
-      obj.width = metrics.width;
-      obj.height = obj.fontSize;
+      // Word wrap text within the box
+      const words = obj.text.split(' ');
+      const lines = [];
+      let currentLine = '';
+      const maxWidth = obj.width - 10; // 5px padding on each side
+      
+      for (const word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const metrics = ctx.measureText(testLine);
+        
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      // Draw each line
+      const lineHeight = obj.fontSize * 1.2;
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], obj.x + 5, obj.y + 5 + (i * lineHeight));
+      }
+      
+      // Draw box outline for reference (optional, can be removed)
+      ctx.strokeStyle = 'rgba(0, 120, 212, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      ctx.setLineDash([]);
     } else if (obj.type === 'group') {
       for (const child of obj.children) {
         this.renderObject(child, ctx);
