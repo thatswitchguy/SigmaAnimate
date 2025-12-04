@@ -225,7 +225,13 @@ class AnimationStudio {
     document.getElementById('brushSizeLabel').textContent = this.brushSize + 'px';
 
     // Playback controls
-    document.getElementById('playBtn').addEventListener('click', () => this.play());
+    document.getElementById('playBtn').addEventListener('click', () => {
+      if (this.isPlaying) {
+        this.stop();
+      } else {
+        this.play();
+      }
+    });
     document.getElementById('stopBtn').addEventListener('click', () => this.stop());
     document.getElementById('fpsInput').addEventListener('change', (e) => {
       this.fps = parseInt(e.target.value);
@@ -1818,6 +1824,9 @@ class AnimationStudio {
     this.frames.forEach((frame, index) => {
       const thumbContainer = document.createElement('div');
       thumbContainer.className = 'frame-thumb';
+      thumbContainer.draggable = true;
+      thumbContainer.dataset.index = index;
+      
       if (index === this.currentFrameIndex) {
         thumbContainer.classList.add('active');
       }
@@ -1855,15 +1864,80 @@ class AnimationStudio {
       thumbContainer.appendChild(frameNumber);
       thumbContainer.addEventListener('click', () => this.selectFrame(index));
 
+      // Drag and drop events
+      thumbContainer.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', index);
+        thumbContainer.classList.add('dragging');
+      });
+
+      thumbContainer.addEventListener('dragend', () => {
+        thumbContainer.classList.remove('dragging');
+      });
+
+      thumbContainer.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        thumbContainer.classList.add('drag-over');
+      });
+
+      thumbContainer.addEventListener('dragleave', () => {
+        thumbContainer.classList.remove('drag-over');
+      });
+
+      thumbContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        thumbContainer.classList.remove('drag-over');
+        
+        const fromIndex = parseInt(e.dataTransfer.getData('text/html'));
+        const toIndex = parseInt(thumbContainer.dataset.index);
+        
+        if (fromIndex !== toIndex) {
+          this.reorderFrames(fromIndex, toIndex);
+        }
+      });
+
       timeline.appendChild(thumbContainer);
     });
+
+    // Add video length indicator
+    const videoLength = this.frames.length / this.fps;
+    const minutes = Math.floor(videoLength / 60);
+    const seconds = (videoLength % 60).toFixed(2);
+    
+    const lengthIndicator = document.createElement('div');
+    lengthIndicator.className = 'video-length-indicator';
+    lengthIndicator.textContent = `Video Length: ${minutes}:${seconds.padStart(5, '0')} (${this.frames.length} frames @ ${this.fps} FPS)`;
+    
+    timeline.appendChild(lengthIndicator);
+  }
+
+  reorderFrames(fromIndex, toIndex) {
+    const movedFrame = this.frames.splice(fromIndex, 1)[0];
+    this.frames.splice(toIndex, 0, movedFrame);
+    
+    // Update current frame index if needed
+    if (this.currentFrameIndex === fromIndex) {
+      this.currentFrameIndex = toIndex;
+    } else if (fromIndex < this.currentFrameIndex && toIndex >= this.currentFrameIndex) {
+      this.currentFrameIndex--;
+    } else if (fromIndex > this.currentFrameIndex && toIndex <= this.currentFrameIndex) {
+      this.currentFrameIndex++;
+    }
+    
+    this.updateTimeline();
+    this.render();
   }
 
   play() {
     if (this.isPlaying) return;
     this.isPlaying = true;
+    
+    // Update button to show pause
+    const playBtn = document.getElementById('playBtn');
+    playBtn.textContent = '⏸ Pause';
 
-    let frameIndex = 0;
+    let frameIndex = this.currentFrameIndex;
     this.animationInterval = setInterval(() => {
       this.currentFrameIndex = frameIndex;
       this.render();
@@ -1878,6 +1952,10 @@ class AnimationStudio {
       clearInterval(this.animationInterval);
       this.animationInterval = null;
     }
+    
+    // Update button to show play
+    const playBtn = document.getElementById('playBtn');
+    playBtn.textContent = '▶ Play';
   }
 
   saveToCloud() {

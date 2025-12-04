@@ -360,6 +360,30 @@ main {
   border-radius: 2px;
 }
 
+.frame-thumb.dragging {
+  opacity: 0.5;
+}
+
+.frame-thumb.drag-over {
+  border-color: #00ff00;
+  box-shadow: 0 0 10px #00ff00;
+}
+
+.video-length-indicator {
+  min-width: 200px;
+  padding: 10px;
+  background: #1e1e1e;
+  color: #0078d4;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  border: 1px solid #444;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 label {
   color: #ccc;
   font-size: 14px;
