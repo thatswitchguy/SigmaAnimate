@@ -1900,16 +1900,22 @@ class AnimationStudio {
       timeline.appendChild(thumbContainer);
     });
 
-    // Add video length indicator
+    // Add video length indicator as a bar below frames
     const videoLength = this.frames.length / this.fps;
     const minutes = Math.floor(videoLength / 60);
     const seconds = (videoLength % 60).toFixed(2);
     
     const lengthIndicator = document.createElement('div');
     lengthIndicator.className = 'video-length-indicator';
-    lengthIndicator.textContent = `Video Length: ${minutes}:${seconds.padStart(5, '0')} (${this.frames.length} frames @ ${this.fps} FPS)`;
+    lengthIndicator.textContent = `Video Length: ${minutes}:${seconds.padStart(5, '0')} | ${this.frames.length} frames @ ${this.fps} FPS`;
     
-    timeline.appendChild(lengthIndicator);
+    // Clear and add to parent container instead of timeline
+    const timelineContainer = timeline.parentElement;
+    const existingIndicator = timelineContainer.querySelector('.video-length-indicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+    timelineContainer.appendChild(lengthIndicator);
   }
 
   reorderFrames(fromIndex, toIndex) {
