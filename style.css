@@ -383,6 +383,19 @@ main {
   font-weight: 500;
 }
 
+.context-menu {
+  color: #fff;
+  font-size: 14px;
+}
+
+.context-menu-item {
+  color: #fff;
+}
+
+.context-menu-item:hover {
+  background: #3d3d3d;
+}
+
 label {
   color: #ccc;
   font-size: 14px;

@@ -175,6 +175,7 @@ class AnimationStudio {
     this.canvas.addEventListener('mouseup', () => this.stopDrawing());
     this.canvas.addEventListener('mouseout', () => this.stopDrawing());
     this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+    this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
 
     // Touch events for mobile
     this.canvas.addEventListener('touchstart', (e) => {
@@ -378,6 +379,109 @@ class AnimationStudio {
     if (clickedObject && clickedObject.type === 'text') {
       this.editTextObject(clickedObject);
     }
+  }
+
+  handleContextMenu(e) {
+    e.preventDefault();
+    
+    const pos = this.getMousePos(e);
+    const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+    
+    if (!clickedObject) return;
+    
+    // Remove any existing context menu
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+      existingMenu.remove();
+    }
+    
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    menu.style.cssText = `
+      position: fixed;
+      left: ${e.clientX}px;
+      top: ${e.clientY}px;
+      background: #2d2d2d;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 8px 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 10000;
+      min-width: 200px;
+    `;
+    
+    // Color option
+    const colorOption = document.createElement('div');
+    colorOption.className = 'context-menu-item';
+    colorOption.style.cssText = 'padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;';
+    colorOption.innerHTML = '<span>Change Color:</span>';
+    
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = clickedObject.color || '#000000';
+    colorInput.style.cssText = 'cursor: pointer; border: none;';
+    colorInput.addEventListener('click', (evt) => evt.stopPropagation());
+    colorInput.addEventListener('change', (evt) => {
+      clickedObject.color = evt.target.value;
+      this.saveCurrentFrame();
+      this.render();
+    });
+    
+    colorOption.appendChild(colorInput);
+    menu.appendChild(colorOption);
+    
+    // Border radius option (only for applicable shapes)
+    if (['square', 'circle', 'triangle'].includes(clickedObject.type)) {
+      const radiusOption = document.createElement('div');
+      radiusOption.className = 'context-menu-item';
+      radiusOption.style.cssText = 'padding: 8px 12px; cursor: pointer;';
+      radiusOption.innerHTML = '<span style="display: block; margin-bottom: 5px;">Border Radius:</span>';
+      
+      const radiusContainer = document.createElement('div');
+      radiusContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+      
+      const radiusSlider = document.createElement('input');
+      radiusSlider.type = 'range';
+      radiusSlider.min = '0';
+      radiusSlider.max = '50';
+      radiusSlider.value = clickedObject.borderRadius || 0;
+      radiusSlider.style.cssText = 'flex: 1; cursor: pointer;';
+      
+      const radiusValue = document.createElement('span');
+      radiusValue.textContent = (clickedObject.borderRadius || 0) + 'px';
+      radiusValue.style.cssText = 'color: #aaa; font-size: 12px; min-width: 35px;';
+      
+      radiusSlider.addEventListener('input', (evt) => {
+        const value = parseInt(evt.target.value);
+        clickedObject.borderRadius = value;
+        radiusValue.textContent = value + 'px';
+        this.render();
+      });
+      
+      radiusSlider.addEventListener('change', () => {
+        this.saveCurrentFrame();
+      });
+      
+      radiusContainer.appendChild(radiusSlider);
+      radiusContainer.appendChild(radiusValue);
+      radiusOption.appendChild(radiusContainer);
+      menu.appendChild(radiusOption);
+    }
+    
+    // Close menu when clicking outside
+    const closeMenu = (evt) => {
+      if (!menu.contains(evt.target)) {
+        menu.remove();
+        document.removeEventListener('mousedown', closeMenu);
+      }
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('mousedown', closeMenu);
+    }, 0);
+    
+    document.body.appendChild(menu);
   }
 
   editTextObject(textObj) {
@@ -1683,19 +1787,65 @@ class AnimationStudio {
       ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
-      ctx.fillRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
-      ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
+      
+      const x = obj.x + groupOffsetX;
+      const y = obj.y + groupOffsetY;
+      const radius = obj.borderRadius || 0;
+      
+      if (radius > 0) {
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + obj.width - radius, y);
+        ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + radius);
+        ctx.lineTo(x + obj.width, y + obj.height - radius);
+        ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - radius, y + obj.height);
+        ctx.lineTo(x + radius, y + obj.height);
+        ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(x, y, obj.width, obj.height);
+        ctx.strokeRect(x, y, obj.width, obj.height);
+      }
     } else if (obj.type === 'triangle') {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
       ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
+      
+      const x = obj.x + groupOffsetX;
+      const y = obj.y + groupOffsetY;
+      const radius = obj.borderRadius || 0;
+      
       ctx.beginPath();
-      ctx.moveTo(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY);
-      ctx.lineTo(obj.x + groupOffsetX, obj.y + groupOffsetY + obj.height);
-      ctx.lineTo(obj.x + groupOffsetX + obj.width, obj.y + groupOffsetY + obj.height);
-      ctx.closePath();
+      if (radius > 0) {
+        // Triangle with rounded corners (simplified)
+        const topX = x + obj.width / 2;
+        const topY = y;
+        const leftX = x;
+        const leftY = y + obj.height;
+        const rightX = x + obj.width;
+        const rightY = y + obj.height;
+        
+        ctx.moveTo(topX, topY + radius);
+        ctx.lineTo(leftX + radius, leftY - radius);
+        ctx.quadraticCurveTo(leftX, leftY, leftX + radius, leftY);
+        ctx.lineTo(rightX - radius, rightY);
+        ctx.quadraticCurveTo(rightX, rightY, rightX - radius, rightY - radius);
+        ctx.lineTo(topX + radius, topY + radius);
+        ctx.quadraticCurveTo(topX, topY, topX - radius, topY + radius);
+        ctx.closePath();
+      } else {
+        ctx.moveTo(x + obj.width / 2, y);
+        ctx.lineTo(x, y + obj.height);
+        ctx.lineTo(x + obj.width, y + obj.height);
+        ctx.closePath();
+      }
       ctx.fill();
       ctx.stroke();
     } else if (obj.type === 'line') {
@@ -2350,17 +2500,61 @@ class AnimationStudio {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.fillRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
-      this.ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
+      
+      const x = obj.x + groupOffsetX;
+      const y = obj.y + groupOffsetY;
+      const radius = obj.borderRadius || 0;
+      
+      if (radius > 0) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + radius, y);
+        this.ctx.lineTo(x + obj.width - radius, y);
+        this.ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + radius);
+        this.ctx.lineTo(x + obj.width, y + obj.height - radius);
+        this.ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - radius, y + obj.height);
+        this.ctx.lineTo(x + radius, y + obj.height);
+        this.ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - radius);
+        this.ctx.lineTo(x, y + radius);
+        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+      } else {
+        this.ctx.fillRect(x, y, obj.width, obj.height);
+        this.ctx.strokeRect(x, y, obj.width, obj.height);
+      }
     } else if (obj.type === 'triangle') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth;
+      
+      const x = obj.x + groupOffsetX;
+      const y = obj.y + groupOffsetY;
+      const radius = obj.borderRadius || 0;
+      
       this.ctx.beginPath();
-      this.ctx.moveTo(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY);
-      this.ctx.lineTo(obj.x + groupOffsetX, obj.y + groupOffsetY + obj.height);
-      this.ctx.lineTo(obj.x + groupOffsetX + obj.width, obj.y + groupOffsetY + obj.height);
-      this.ctx.closePath();
+      if (radius > 0) {
+        const topX = x + obj.width / 2;
+        const topY = y;
+        const leftX = x;
+        const leftY = y + obj.height;
+        const rightX = x + obj.width;
+        const rightY = y + obj.height;
+        
+        this.ctx.moveTo(topX, topY + radius);
+        this.ctx.lineTo(leftX + radius, leftY - radius);
+        this.ctx.quadraticCurveTo(leftX, leftY, leftX + radius, leftY);
+        this.ctx.lineTo(rightX - radius, rightY);
+        this.ctx.quadraticCurveTo(rightX, rightY, rightX - radius, rightY - radius);
+        this.ctx.lineTo(topX + radius, topY + radius);
+        this.ctx.quadraticCurveTo(topX, topY, topX - radius, topY + radius);
+        this.ctx.closePath();
+      } else {
+        this.ctx.moveTo(x + obj.width / 2, y);
+        this.ctx.lineTo(x, y + obj.height);
+        this.ctx.lineTo(x + obj.width, y + obj.height);
+        this.ctx.closePath();
+      }
       this.ctx.fill();
       this.ctx.stroke();
     } else if (obj.type === 'line') {
