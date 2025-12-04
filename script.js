@@ -10,7 +10,7 @@ class AnimationStudio {
     this.isDrawing = false;
     this.tool = 'pencil';
     this.color = '#000000';
-    this.brushSize = 3;
+    this.brushSize = 7;
     this.isPlaying = false;
     this.fps = 12;
     this.animationInterval = null;
@@ -220,6 +220,9 @@ class AnimationStudio {
       this.brushSize = parseInt(e.target.value);
       document.getElementById('brushSizeLabel').textContent = this.brushSize + 'px';
     });
+    
+    // Set initial brush size label
+    document.getElementById('brushSizeLabel').textContent = this.brushSize + 'px';
 
     // Playback controls
     document.getElementById('playBtn').addEventListener('click', () => this.play());
