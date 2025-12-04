@@ -1784,9 +1784,11 @@ class AnimationStudio {
     } else if (obj.type === 'square') {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
-      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
-      ctx.lineWidth = obj.lineWidth;
+      const useObjColor = currentStroke !== '#888888' && !currentFill.includes('rgba');
+      
+      ctx.strokeStyle = useObjColor ? obj.color : currentStroke;
+      ctx.fillStyle = useObjColor ? obj.color : currentFill;
+      ctx.lineWidth = obj.lineWidth || 2;
       
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
@@ -1794,16 +1796,17 @@ class AnimationStudio {
       
       if (radius > 0) {
         // Draw rounded rectangle
+        const maxRadius = Math.min(radius, obj.width / 2, obj.height / 2);
         ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + obj.width - radius, y);
-        ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + radius);
-        ctx.lineTo(x + obj.width, y + obj.height - radius);
-        ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - radius, y + obj.height);
-        ctx.lineTo(x + radius, y + obj.height);
-        ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - radius);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.moveTo(x + maxRadius, y);
+        ctx.lineTo(x + obj.width - maxRadius, y);
+        ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + maxRadius);
+        ctx.lineTo(x + obj.width, y + obj.height - maxRadius);
+        ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - maxRadius, y + obj.height);
+        ctx.lineTo(x + maxRadius, y + obj.height);
+        ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - maxRadius);
+        ctx.lineTo(x, y + maxRadius);
+        ctx.quadraticCurveTo(x, y, x + maxRadius, y);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -1814,9 +1817,11 @@ class AnimationStudio {
     } else if (obj.type === 'triangle') {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
-      ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
-      ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
-      ctx.lineWidth = obj.lineWidth;
+      const useObjColor = currentStroke !== '#888888' && !currentFill.includes('rgba');
+      
+      ctx.strokeStyle = useObjColor ? obj.color : currentStroke;
+      ctx.fillStyle = useObjColor ? obj.color : currentFill;
+      ctx.lineWidth = obj.lineWidth || 2;
       
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
@@ -1825,6 +1830,7 @@ class AnimationStudio {
       ctx.beginPath();
       if (radius > 0) {
         // Triangle with rounded corners (simplified)
+        const maxRadius = Math.min(radius, obj.width / 4, obj.height / 4);
         const topX = x + obj.width / 2;
         const topY = y;
         const leftX = x;
@@ -1832,13 +1838,13 @@ class AnimationStudio {
         const rightX = x + obj.width;
         const rightY = y + obj.height;
         
-        ctx.moveTo(topX, topY + radius);
-        ctx.lineTo(leftX + radius, leftY - radius);
-        ctx.quadraticCurveTo(leftX, leftY, leftX + radius, leftY);
-        ctx.lineTo(rightX - radius, rightY);
-        ctx.quadraticCurveTo(rightX, rightY, rightX - radius, rightY - radius);
-        ctx.lineTo(topX + radius, topY + radius);
-        ctx.quadraticCurveTo(topX, topY, topX - radius, topY + radius);
+        ctx.moveTo(topX, topY + maxRadius);
+        ctx.lineTo(leftX + maxRadius, leftY - maxRadius);
+        ctx.quadraticCurveTo(leftX, leftY, leftX + maxRadius, leftY);
+        ctx.lineTo(rightX - maxRadius, rightY);
+        ctx.quadraticCurveTo(rightX, rightY, rightX - maxRadius, rightY - maxRadius);
+        ctx.lineTo(topX + maxRadius, topY + maxRadius);
+        ctx.quadraticCurveTo(topX, topY, topX - maxRadius, topY + maxRadius);
         ctx.closePath();
       } else {
         ctx.moveTo(x + obj.width / 2, y);
@@ -2499,23 +2505,24 @@ class AnimationStudio {
     } else if (obj.type === 'square') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineWidth = obj.lineWidth || 2;
       
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
       const radius = obj.borderRadius || 0;
       
       if (radius > 0) {
+        const maxRadius = Math.min(radius, obj.width / 2, obj.height / 2);
         this.ctx.beginPath();
-        this.ctx.moveTo(x + radius, y);
-        this.ctx.lineTo(x + obj.width - radius, y);
-        this.ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + radius);
-        this.ctx.lineTo(x + obj.width, y + obj.height - radius);
-        this.ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - radius, y + obj.height);
-        this.ctx.lineTo(x + radius, y + obj.height);
-        this.ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - radius);
-        this.ctx.lineTo(x, y + radius);
-        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.moveTo(x + maxRadius, y);
+        this.ctx.lineTo(x + obj.width - maxRadius, y);
+        this.ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + maxRadius);
+        this.ctx.lineTo(x + obj.width, y + obj.height - maxRadius);
+        this.ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - maxRadius, y + obj.height);
+        this.ctx.lineTo(x + maxRadius, y + obj.height);
+        this.ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - maxRadius);
+        this.ctx.lineTo(x, y + maxRadius);
+        this.ctx.quadraticCurveTo(x, y, x + maxRadius, y);
         this.ctx.closePath();
         this.ctx.fill();
         this.ctx.stroke();
@@ -2526,7 +2533,7 @@ class AnimationStudio {
     } else if (obj.type === 'triangle') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
-      this.ctx.lineWidth = obj.lineWidth;
+      this.ctx.lineWidth = obj.lineWidth || 2;
       
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
@@ -2534,6 +2541,7 @@ class AnimationStudio {
       
       this.ctx.beginPath();
       if (radius > 0) {
+        const maxRadius = Math.min(radius, obj.width / 4, obj.height / 4);
         const topX = x + obj.width / 2;
         const topY = y;
         const leftX = x;
@@ -2541,13 +2549,13 @@ class AnimationStudio {
         const rightX = x + obj.width;
         const rightY = y + obj.height;
         
-        this.ctx.moveTo(topX, topY + radius);
-        this.ctx.lineTo(leftX + radius, leftY - radius);
-        this.ctx.quadraticCurveTo(leftX, leftY, leftX + radius, leftY);
-        this.ctx.lineTo(rightX - radius, rightY);
-        this.ctx.quadraticCurveTo(rightX, rightY, rightX - radius, rightY - radius);
-        this.ctx.lineTo(topX + radius, topY + radius);
-        this.ctx.quadraticCurveTo(topX, topY, topX - radius, topY + radius);
+        this.ctx.moveTo(topX, topY + maxRadius);
+        this.ctx.lineTo(leftX + maxRadius, leftY - maxRadius);
+        this.ctx.quadraticCurveTo(leftX, leftY, leftX + maxRadius, leftY);
+        this.ctx.lineTo(rightX - maxRadius, rightY);
+        this.ctx.quadraticCurveTo(rightX, rightY, rightX - maxRadius, rightY - maxRadius);
+        this.ctx.lineTo(topX + maxRadius, topY + maxRadius);
+        this.ctx.quadraticCurveTo(topX, topY, topX - maxRadius, topY + maxRadius);
         this.ctx.closePath();
       } else {
         this.ctx.moveTo(x + obj.width / 2, y);
