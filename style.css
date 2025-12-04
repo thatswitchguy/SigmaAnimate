@@ -435,7 +435,7 @@ input[type="checkbox"] {
 }
 
 #drawCanvas.cursor-mouse {
-  cursor: url('attached_assets/mouse_1764871328843.jpg') 12 12, default !important;
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3 L3 18 L9 12 L12 18 L15 17 L12 11 L18 11 Z" fill="black" stroke="white" stroke-width="1"/></svg>') 0 0, default !important;
 }
 
 #drawCanvas.cursor-fill {
