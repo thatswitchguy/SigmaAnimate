@@ -1604,10 +1604,10 @@ class AnimationStudio {
     }
   }
 
-  renderObject(obj, ctx = this.ctx) {
+  renderObject(obj, ctx = this.ctx, groupOffsetX = 0, groupOffsetY = 0) {
     const rotation = obj.rotation || 0;
-    const centerX = obj.x + obj.width / 2;
-    const centerY = obj.y + obj.height / 2;
+    const centerX = obj.x + groupOffsetX + obj.width / 2;
+    const centerY = obj.y + groupOffsetY + obj.height / 2;
 
     ctx.save();
     ctx.translate(centerX, centerY);
@@ -1621,7 +1621,7 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
       ctx.beginPath();
-      ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     } else if (obj.type === 'square') {
@@ -1630,8 +1630,8 @@ class AnimationStudio {
       ctx.strokeStyle = currentStroke === '#888888' ? currentStroke : obj.color;
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
-      ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-      ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      ctx.fillRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
+      ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
     } else if (obj.type === 'triangle') {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
@@ -1639,9 +1639,9 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
       ctx.beginPath();
-      ctx.moveTo(obj.x + obj.width / 2, obj.y);
-      ctx.lineTo(obj.x, obj.y + obj.height);
-      ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
+      ctx.moveTo(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY);
+      ctx.lineTo(obj.x + groupOffsetX, obj.y + groupOffsetY + obj.height);
+      ctx.lineTo(obj.x + groupOffsetX + obj.width, obj.y + groupOffsetY + obj.height);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -1651,8 +1651,8 @@ class AnimationStudio {
       ctx.lineWidth = obj.lineWidth;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(obj.startX, obj.startY);
-      ctx.lineTo(obj.endX, obj.endY);
+      ctx.moveTo(obj.startX + groupOffsetX, obj.startY + groupOffsetY);
+      ctx.lineTo(obj.endX + groupOffsetX, obj.endY + groupOffsetY);
       ctx.stroke();
     } else if (obj.type === 'path') {
       const currentStroke = ctx.strokeStyle;
@@ -1661,14 +1661,14 @@ class AnimationStudio {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(obj.points[0].x, obj.points[0].y);
+      ctx.moveTo(obj.points[0].x + groupOffsetX, obj.points[0].y + groupOffsetY);
       for (let i = 1; i < obj.points.length; i++) {
-        ctx.lineTo(obj.points[i].x, obj.points[i].y);
+        ctx.lineTo(obj.points[i].x + groupOffsetX, obj.points[i].y + groupOffsetY);
       }
       ctx.stroke();
     } else if (obj.type === 'image') {
       if (obj.imageElement) {
-        ctx.drawImage(obj.imageElement, obj.x, obj.y, obj.width, obj.height);
+        ctx.drawImage(obj.imageElement, obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
       } else if (obj.src) {
         // Fallback: create and cache the image element
         const img = new Image();
@@ -1708,18 +1708,22 @@ class AnimationStudio {
       // Draw each line
       const lineHeight = obj.fontSize * 1.2;
       for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], obj.x + 5, obj.y + 5 + (i * lineHeight));
+        ctx.fillText(lines[i], obj.x + groupOffsetX + 5, obj.y + groupOffsetY + 5 + (i * lineHeight));
       }
       
       // Draw box outline for reference (optional, can be removed)
       ctx.strokeStyle = 'rgba(0, 120, 212, 0.3)';
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
-      ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
       ctx.setLineDash([]);
     } else if (obj.type === 'group') {
+      // Calculate the offset for child objects based on group position
+      const childOffsetX = obj.x;
+      const childOffsetY = obj.y;
+      
       for (const child of obj.children) {
-        this.renderObject(child, ctx);
+        this.renderObject(child, ctx, childOffsetX, childOffsetY);
       }
     }
 
@@ -2193,10 +2197,10 @@ class AnimationStudio {
     }
   }
 
-  renderObjectForExport(obj) {
+  renderObjectForExport(obj, groupOffsetX = 0, groupOffsetY = 0) {
     const rotation = obj.rotation || 0;
-    const centerX = obj.x + obj.width / 2;
-    const centerY = obj.y + obj.height / 2;
+    const centerX = obj.x + groupOffsetX + obj.width / 2;
+    const centerY = obj.y + groupOffsetY + obj.height / 2;
 
     this.ctx.save();
     this.ctx.translate(centerX, centerY);
@@ -2208,23 +2212,23 @@ class AnimationStudio {
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.beginPath();
-      this.ctx.arc(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      this.ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.stroke();
     } else if (obj.type === 'square') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth;
-      this.ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
-      this.ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+      this.ctx.fillRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
+      this.ctx.strokeRect(obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
     } else if (obj.type === 'triangle') {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.beginPath();
-      this.ctx.moveTo(obj.x + obj.width / 2, obj.y);
-      this.ctx.lineTo(obj.x, obj.y + obj.height);
-      this.ctx.lineTo(obj.x + obj.width, obj.y + obj.height);
+      this.ctx.moveTo(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY);
+      this.ctx.lineTo(obj.x + groupOffsetX, obj.y + groupOffsetY + obj.height);
+      this.ctx.lineTo(obj.x + groupOffsetX + obj.width, obj.y + groupOffsetY + obj.height);
       this.ctx.closePath();
       this.ctx.fill();
       this.ctx.stroke();
@@ -2233,8 +2237,8 @@ class AnimationStudio {
       this.ctx.lineWidth = obj.lineWidth;
       this.ctx.lineCap = 'round';
       this.ctx.beginPath();
-      this.ctx.moveTo(obj.startX, obj.startY);
-      this.ctx.lineTo(obj.endX, obj.endY);
+      this.ctx.moveTo(obj.startX + groupOffsetX, obj.startY + groupOffsetY);
+      this.ctx.lineTo(obj.endX + groupOffsetX, obj.endY + groupOffsetY);
       this.ctx.stroke();
     } else if (obj.type === 'path') {
       this.ctx.strokeStyle = obj.color;
@@ -2242,23 +2246,26 @@ class AnimationStudio {
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
       this.ctx.beginPath();
-      this.ctx.moveTo(obj.points[0].x, obj.points[0].y);
+      this.ctx.moveTo(obj.points[0].x + groupOffsetX, obj.points[0].y + groupOffsetY);
       for (let i = 1; i < obj.points.length; i++) {
-        this.ctx.lineTo(obj.points[i].x, obj.points[i].y);
+        this.ctx.lineTo(obj.points[i].x + groupOffsetX, obj.points[i].y + groupOffsetY);
       }
       this.ctx.stroke();
     } else if (obj.type === 'image') {
       if (obj.imageElement) {
-        this.ctx.drawImage(obj.imageElement, obj.x, obj.y, obj.width, obj.height);
+        this.ctx.drawImage(obj.imageElement, obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
       }
     } else if (obj.type === 'text') {
       this.ctx.fillStyle = obj.color;
       this.ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
       this.ctx.textBaseline = 'top';
-      this.ctx.fillText(obj.text, obj.x, obj.y);
+      this.ctx.fillText(obj.text, obj.x + groupOffsetX, obj.y + groupOffsetY);
     } else if (obj.type === 'group') {
+      const childOffsetX = obj.x;
+      const childOffsetY = obj.y;
+      
       for (const child of obj.children) {
-        this.renderObjectForExport(child);
+        this.renderObjectForExport(child, childOffsetX, childOffsetY);
       }
     }
 
