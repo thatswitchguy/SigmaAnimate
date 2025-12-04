@@ -64,6 +64,8 @@ class AnimationStudio {
     this.initializeResizers();
     this.render();
     this.updateTimeline();
+    // Save initial state to history
+    this.saveCurrentFrame();
     // Set initial cursor after a small delay to ensure canvas is ready
     setTimeout(() => this.setTool('pencil'), 0);
   }
@@ -2171,7 +2173,7 @@ class AnimationStudio {
             // Reset history after loading
             this.history = [];
             this.historyIndex = -1;
-            this.saveToHistory();
+            this.saveCurrentFrame();
           });
         };
         img.src = projectData.backgroundImageSrc;
@@ -2183,7 +2185,7 @@ class AnimationStudio {
           // Reset history after loading
           this.history = [];
           this.historyIndex = -1;
-          this.saveToHistory();
+          this.saveCurrentFrame();
         });
       }
 
@@ -2257,7 +2259,7 @@ class AnimationStudio {
           // Reset history after loading
           this.history = [];
           this.historyIndex = -1;
-          this.saveToHistory();
+          this.saveCurrentFrame();
         } catch (error) {
           alert('Error loading project: ' + error.message);
         }
