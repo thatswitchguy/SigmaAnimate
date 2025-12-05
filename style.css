@@ -260,9 +260,10 @@ main {
   height: 50px;
   min-height: 50px;
   overflow: hidden;
+  padding: 5px 15px;
 }
 
-.animation-controls.collapsed > *:not(.collapse-btn) {
+.animation-controls.collapsed > *:not(.collapse-btn):not(.resizer-horizontal) {
   display: none;
 }
 
