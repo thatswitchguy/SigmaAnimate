@@ -674,13 +674,13 @@ class AnimationStudio {
     }
 
     if (this.tool === 'eraser') {
+      this.isDrawing = true;
       const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
       if (clickedObject) {
         this.deleteObject(clickedObject);
-        this.saveCurrentFrame();
         this.render();
-        return;
       }
+      return;
     }
 
     this.isDrawing = true;
@@ -698,6 +698,15 @@ class AnimationStudio {
       this.tempTextBox.width = pos.x - this.tempTextBox.x;
       this.tempTextBox.height = pos.y - this.tempTextBox.y;
       this.render();
+      return;
+    }
+
+    if (this.tool === 'eraser' && this.isDrawing) {
+      const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+      if (clickedObject) {
+        this.deleteObject(clickedObject);
+        this.render();
+      }
       return;
     }
 
@@ -792,6 +801,12 @@ class AnimationStudio {
   }
 
   stopDrawing() {
+    if (this.tool === 'eraser' && this.isDrawing) {
+      this.isDrawing = false;
+      this.saveCurrentFrame();
+      return;
+    }
+
     if (this.tool === 'text' && this.isDrawing) {
       this.isDrawing = false;
       
