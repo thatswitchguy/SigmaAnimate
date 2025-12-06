@@ -30,6 +30,7 @@ class AnimationStudio {
     this.textContent = '';
     this.fontSize = 24;
     this.fontFamily = 'Arial';
+    this.textUnderline = false;
     this.textBoxStart = null;
     this.tempTextBox = null;
 
@@ -554,6 +555,25 @@ class AnimationStudio {
     fontFamilyContainer.appendChild(fontFamilyLabel);
     fontFamilyContainer.appendChild(fontFamilySelect);
     
+    // Underline control
+    const underlineContainer = document.createElement('div');
+    underlineContainer.style.cssText = 'margin-bottom: 15px;';
+    
+    const underlineLabel = document.createElement('label');
+    underlineLabel.style.cssText = 'display: flex; align-items: center; gap: 8px; color: #ccc; cursor: pointer;';
+    
+    const underlineCheckbox = document.createElement('input');
+    underlineCheckbox.type = 'checkbox';
+    underlineCheckbox.checked = textObj.underline || false;
+    underlineCheckbox.style.cssText = 'cursor: pointer;';
+    
+    const underlineText = document.createElement('span');
+    underlineText.textContent = 'Underline';
+    
+    underlineLabel.appendChild(underlineCheckbox);
+    underlineLabel.appendChild(underlineText);
+    underlineContainer.appendChild(underlineLabel);
+    
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
     
@@ -575,6 +595,7 @@ class AnimationStudio {
         textObj.text = newText;
         textObj.fontSize = parseInt(fontSizeInput.value);
         textObj.fontFamily = fontFamilySelect.value;
+        textObj.underline = underlineCheckbox.checked;
         textObj.name = 'Text: ' + newText.substring(0, 20);
         this.saveCurrentFrame();
         this.render();
@@ -596,6 +617,7 @@ class AnimationStudio {
     dialog.appendChild(textarea);
     dialog.appendChild(fontSizeContainer);
     dialog.appendChild(fontFamilyContainer);
+    dialog.appendChild(underlineContainer);
     dialog.appendChild(buttonContainer);
     modal.appendChild(dialog);
     document.body.appendChild(modal);
@@ -866,6 +888,7 @@ class AnimationStudio {
         text: this.textContent || 'Double-click to edit',
         fontSize: this.fontSize,
         fontFamily: this.fontFamily,
+        underline: this.textUnderline,
         color: this.color,
         width: width,
         height: height,
@@ -1982,7 +2005,21 @@ class AnimationStudio {
       // Draw each line
       const lineHeight = obj.fontSize * 1.2;
       for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], obj.x + groupOffsetX + 5, obj.y + groupOffsetY + 5 + (i * lineHeight));
+        const lineX = obj.x + groupOffsetX + 5;
+        const lineY = obj.y + groupOffsetY + 5 + (i * lineHeight);
+        ctx.fillText(lines[i], lineX, lineY);
+        
+        // Draw underline if enabled
+        if (obj.underline) {
+          const textWidth = ctx.measureText(lines[i]).width;
+          const underlineY = lineY + obj.fontSize + 2;
+          ctx.strokeStyle = currentFill.includes('rgba') ? currentFill : obj.color;
+          ctx.lineWidth = Math.max(1, obj.fontSize / 16);
+          ctx.beginPath();
+          ctx.moveTo(lineX, underlineY);
+          ctx.lineTo(lineX + textWidth, underlineY);
+          ctx.stroke();
+        }
       }
       
       // Draw box outline for reference (optional, can be removed)
@@ -2700,7 +2737,21 @@ class AnimationStudio {
       this.ctx.fillStyle = obj.color;
       this.ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
       this.ctx.textBaseline = 'top';
-      this.ctx.fillText(obj.text, obj.x + groupOffsetX, obj.y + groupOffsetY);
+      const textX = obj.x + groupOffsetX;
+      const textY = obj.y + groupOffsetY;
+      this.ctx.fillText(obj.text, textX, textY);
+      
+      // Draw underline if enabled
+      if (obj.underline) {
+        const textWidth = this.ctx.measureText(obj.text).width;
+        const underlineY = textY + obj.fontSize + 2;
+        this.ctx.strokeStyle = obj.color;
+        this.ctx.lineWidth = Math.max(1, obj.fontSize / 16);
+        this.ctx.beginPath();
+        this.ctx.moveTo(textX, underlineY);
+        this.ctx.lineTo(textX + textWidth, underlineY);
+        this.ctx.stroke();
+      }
     } else if (obj.type === 'group') {
       // Render children with group position as offset
       const childOffsetX = obj.x + groupOffsetX;
