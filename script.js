@@ -2054,22 +2054,84 @@ class AnimationStudio {
       timeline.appendChild(thumbContainer);
     });
 
-    // Add video length indicator as a bar below frames
+    // Update timeline scrubber
+    this.updateTimelineScrubber();
+  }
+
+  updateTimelineScrubber() {
+    const timelineContainer = document.getElementById('timeline').parentElement;
+    
+    // Remove existing scrubber and indicator
+    const existingScrubber = timelineContainer.querySelector('.timeline-scrubber');
+    const existingIndicator = timelineContainer.querySelector('.video-length-indicator');
+    if (existingScrubber) existingScrubber.remove();
+    if (existingIndicator) existingIndicator.remove();
+    
+    // Calculate video info
     const videoLength = this.frames.length / this.fps;
     const minutes = Math.floor(videoLength / 60);
     const seconds = (videoLength % 60).toFixed(2);
+    const currentTime = this.currentFrameIndex / this.fps;
+    const currentMinutes = Math.floor(currentTime / 60);
+    const currentSeconds = (currentTime % 60).toFixed(2);
     
+    // Create video length indicator
     const lengthIndicator = document.createElement('div');
     lengthIndicator.className = 'video-length-indicator';
     lengthIndicator.textContent = `Video Length: ${minutes}:${seconds.padStart(5, '0')} | ${this.frames.length} frames @ ${this.fps} FPS`;
     
-    // Clear and add to parent container instead of timeline
-    const timelineContainer = timeline.parentElement;
-    const existingIndicator = timelineContainer.querySelector('.video-length-indicator');
-    if (existingIndicator) {
-      existingIndicator.remove();
-    }
+    // Create timeline scrubber
+    const scrubber = document.createElement('div');
+    scrubber.className = 'timeline-scrubber';
+    
+    const progress = document.createElement('div');
+    progress.className = 'timeline-scrubber-progress';
+    const progressPercent = this.frames.length > 0 ? (this.currentFrameIndex / this.frames.length) * 100 : 0;
+    progress.style.width = progressPercent + '%';
+    
+    const handle = document.createElement('div');
+    handle.className = 'timeline-scrubber-handle';
+    handle.style.left = progressPercent + '%';
+    
+    const timeDisplay = document.createElement('div');
+    timeDisplay.className = 'timeline-scrubber-time';
+    timeDisplay.textContent = `${currentMinutes}:${currentSeconds.padStart(5, '0')} / ${minutes}:${seconds.padStart(5, '0')}`;
+    
+    scrubber.appendChild(progress);
+    scrubber.appendChild(handle);
+    scrubber.appendChild(timeDisplay);
+    
+    // Add scrubber interaction
+    let isDraggingScrubber = false;
+    
+    const updateScrubberPosition = (e) => {
+      const rect = scrubber.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = Math.max(0, Math.min(1, x / rect.width));
+      const frameIndex = Math.floor(percent * this.frames.length);
+      
+      if (frameIndex >= 0 && frameIndex < this.frames.length) {
+        this.selectFrame(frameIndex);
+      }
+    };
+    
+    scrubber.addEventListener('mousedown', (e) => {
+      isDraggingScrubber = true;
+      updateScrubberPosition(e);
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isDraggingScrubber) {
+        updateScrubberPosition(e);
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isDraggingScrubber = false;
+    });
+    
     timelineContainer.appendChild(lengthIndicator);
+    timelineContainer.appendChild(scrubber);
   }
 
   reorderFrames(fromIndex, toIndex) {
