@@ -730,29 +730,25 @@ class AnimationStudio {
         const dy = pos.y - this.dragStartY;
 
         if (this.resizeHandle === 'se') {
+          // Bottom-right: increase width and height
           obj.width = Math.max(10, obj.width + dx);
           obj.height = Math.max(10, obj.height + dy);
         } else if (this.resizeHandle === 'sw') {
-          const newWidth = Math.max(10, obj.width - dx);
-          const widthDiff = obj.width - newWidth;
-          obj.x += widthDiff;
-          obj.width = newWidth;
+          // Bottom-left: move left edge and increase height
+          obj.x += dx;
+          obj.width = Math.max(10, obj.width - dx);
           obj.height = Math.max(10, obj.height + dy);
         } else if (this.resizeHandle === 'ne') {
+          // Top-right: move top edge and increase width
+          obj.y += dy;
           obj.width = Math.max(10, obj.width + dx);
-          const newHeight = Math.max(10, obj.height - dy);
-          const heightDiff = obj.height - newHeight;
-          obj.y += heightDiff;
-          obj.height = newHeight;
+          obj.height = Math.max(10, obj.height - dy);
         } else if (this.resizeHandle === 'nw') {
-          const newWidth = Math.max(10, obj.width - dx);
-          const widthDiff = obj.width - newWidth;
-          obj.x += widthDiff;
-          obj.width = newWidth;
-          const newHeight = Math.max(10, obj.height - dy);
-          const heightDiff = obj.height - newHeight;
-          obj.y += heightDiff;
-          obj.height = newHeight;
+          // Top-left: move both edges
+          obj.x += dx;
+          obj.y += dy;
+          obj.width = Math.max(10, obj.width - dx);
+          obj.height = Math.max(10, obj.height - dy);
         }
 
         this.dragStartX = pos.x;
