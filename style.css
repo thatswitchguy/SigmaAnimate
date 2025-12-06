@@ -257,14 +257,15 @@ main {
 }
 
 .animation-controls.collapsed {
-  height: 50px;
-  min-height: 50px;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
   overflow: hidden;
-  padding: 5px 15px;
+  padding: 8px 15px;
 }
 
 .animation-controls.collapsed > *:not(.collapse-btn):not(.resizer-horizontal) {
-  display: none;
+  display: none !important;
 }
 
 .resizer-horizontal {
