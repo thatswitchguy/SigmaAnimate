@@ -294,6 +294,7 @@ class AnimationStudio {
     document.getElementById('circleBtn').addEventListener('click', () => this.insertShape('circle'));
     document.getElementById('squareBtn').addEventListener('click', () => this.insertShape('square'));
     document.getElementById('triangleBtn').addEventListener('click', () => this.insertShape('triangle'));
+    document.getElementById('lineBtn').addEventListener('click', () => this.insertLine());
 
     // Group/Ungroup controls
     document.getElementById('groupBtn').addEventListener('click', () => this.groupSelectedObjects());
@@ -751,56 +752,80 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
-        // Normal resize mode: maintain aspect ratio and prevent negative dimensions
-        if (this.resizeHandle === 'se') {
-          obj.width += dx;
-          obj.height += dy;
-        } else if (this.resizeHandle === 'sw') {
-          obj.x += dx;
-          obj.width -= dx;
-          obj.height += dy;
-        } else if (this.resizeHandle === 'ne') {
-          obj.y += dy;
-          obj.width += dx;
-          obj.height -= dy;
-        } else if (this.resizeHandle === 'nw') {
-          obj.x += dx;
-          obj.y += dy;
-          obj.width -= dx;
-          obj.height -= dy;
-        } else if (this.resizeHandle === 'n') {
-          obj.y += dy;
-          obj.height -= dy;
-        } else if (this.resizeHandle === 's') {
-          obj.height += dy;
-        } else if (this.resizeHandle === 'e') {
-          obj.width += dx;
-        } else if (this.resizeHandle === 'w') {
-          obj.x += dx;
-          obj.width -= dx;
-        }
+        // Special handling for line objects
+        if (obj.type === 'line') {
+          if (this.resizeHandle === 'se' || this.resizeHandle === 'e') {
+            // Move end point
+            obj.endX += dx;
+            obj.endY += dy;
+          } else if (this.resizeHandle === 'nw' || this.resizeHandle === 'w') {
+            // Move start point
+            obj.startX += dx;
+            obj.startY += dy;
+          }
+          
+          // Recalculate bounding box for line
+          const minX = Math.min(obj.startX, obj.endX);
+          const maxX = Math.max(obj.startX, obj.endX);
+          const minY = Math.min(obj.startY, obj.endY);
+          const maxY = Math.max(obj.startY, obj.endY);
+          
+          obj.x = minX;
+          obj.y = minY;
+          obj.width = maxX - minX;
+          obj.height = maxY - minY;
+        } else {
+          // Normal resize mode for other shapes
+          if (this.resizeHandle === 'se') {
+            obj.width += dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'sw') {
+            obj.x += dx;
+            obj.width -= dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'ne') {
+            obj.y += dy;
+            obj.width += dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'nw') {
+            obj.x += dx;
+            obj.y += dy;
+            obj.width -= dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'n') {
+            obj.y += dy;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 's') {
+            obj.height += dy;
+          } else if (this.resizeHandle === 'e') {
+            obj.width += dx;
+          } else if (this.resizeHandle === 'w') {
+            obj.x += dx;
+            obj.width -= dx;
+          }
 
-        // Normalize negative dimensions (flip the shape)
-        if (obj.width < 0) {
-          obj.x += obj.width;
-          obj.width = Math.abs(obj.width);
-          if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
-          else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
-          else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
-          else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
-          else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
-          else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
-        }
-        
-        if (obj.height < 0) {
-          obj.y += obj.height;
-          obj.height = Math.abs(obj.height);
-          if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
-          else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
-          else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
-          else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
-          else if (this.resizeHandle === 's') this.resizeHandle = 'n';
-          else if (this.resizeHandle === 'n') this.resizeHandle = 's';
+          // Normalize negative dimensions (flip the shape)
+          if (obj.width < 0) {
+            obj.x += obj.width;
+            obj.width = Math.abs(obj.width);
+            if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
+            else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
+            else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
+            else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
+            else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
+            else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
+          }
+          
+          if (obj.height < 0) {
+            obj.y += obj.height;
+            obj.height = Math.abs(obj.height);
+            if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
+            else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
+            else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
+            else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
+            else if (this.resizeHandle === 's') this.resizeHandle = 'n';
+            else if (this.resizeHandle === 'n') this.resizeHandle = 's';
+          }
         }
 
         this.dragStartX = pos.x;
@@ -816,6 +841,14 @@ class AnimationStudio {
         for (const obj of this.selectedObjects) {
           obj.x += dx;
           obj.y += dy;
+          
+          // Update line endpoints if it's a line object
+          if (obj.type === 'line') {
+            obj.startX += dx;
+            obj.startY += dy;
+            obj.endX += dx;
+            obj.endY += dy;
+          }
         }
 
         this.dragStartX = pos.x;
@@ -1201,6 +1234,34 @@ class AnimationStudio {
     this.saveCurrentFrame();
   }
 
+  insertLine() {
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 2;
+    const lineLength = 100;
+
+    const lineObj = {
+      type: 'line',
+      startX: centerX - lineLength / 2,
+      startY: centerY,
+      endX: centerX + lineLength / 2,
+      endY: centerY,
+      x: centerX - lineLength / 2,
+      y: centerY - 10,
+      width: lineLength,
+      height: 20,
+      color: this.color,
+      lineWidth: this.brushSize,
+      rotation: 0,
+      name: 'Line ' + (this.getCurrentFrameObjects().length + 1)
+    };
+
+    this.addObject(lineObj);
+    this.selectedObjects = [lineObj];
+    this.setTool('mouse');
+    this.saveCurrentFrame();
+    this.render();
+  }
+
   drawShape(shape, width, height) {
     const x = (this.canvas.width - width) / 2;
     const y = (this.canvas.height - height) / 2;
@@ -1283,7 +1344,25 @@ class AnimationStudio {
       };
     };
 
-    // Corner handles
+    // For line objects, only show handles at the endpoints
+    if (obj.type === 'line') {
+      const startHandle = rotatePoint(obj.startX, obj.startY, centerX, centerY, rotation);
+      const endHandle = rotatePoint(obj.endX, obj.endY, centerX, centerY, rotation);
+      
+      if (x >= startHandle.x - handleSize && x <= startHandle.x + handleSize &&
+          y >= startHandle.y - handleSize && y <= startHandle.y + handleSize) {
+        return 'nw'; // Start point
+      }
+      
+      if (x >= endHandle.x - handleSize && x <= endHandle.x + handleSize &&
+          y >= endHandle.y - handleSize && y <= endHandle.y + handleSize) {
+        return 'se'; // End point
+      }
+      
+      return null;
+    }
+
+    // Corner handles for other shapes
     const corners = {
       nw: { x: obj.x, y: obj.y },
       ne: { x: obj.x + obj.width, y: obj.y },
@@ -1778,36 +1857,45 @@ class AnimationStudio {
           };
         };
 
-        // Corner handles
-        const corners = [
-          { x: obj.x, y: obj.y },
-          { x: obj.x + obj.width, y: obj.y },
-          { x: obj.x, y: obj.y + obj.height },
-          { x: obj.x + obj.width, y: obj.y + obj.height }
-        ];
+        // For line objects, only show handles at endpoints
+        if (obj.type === 'line') {
+          const startHandle = rotatePoint(obj.startX, obj.startY, centerX, centerY, rotation);
+          const endHandle = rotatePoint(obj.endX, obj.endY, centerX, centerY, rotation);
+          
+          this.ctx.fillRect(startHandle.x - handleSize / 2, startHandle.y - handleSize / 2, handleSize, handleSize);
+          this.ctx.fillRect(endHandle.x - handleSize / 2, endHandle.y - handleSize / 2, handleSize, handleSize);
+        } else {
+          // Corner handles for other shapes
+          const corners = [
+            { x: obj.x, y: obj.y },
+            { x: obj.x + obj.width, y: obj.y },
+            { x: obj.x, y: obj.y + obj.height },
+            { x: obj.x + obj.width, y: obj.y + obj.height }
+          ];
 
-        const rotatedCorners = corners.map(corner => 
-          rotatePoint(corner.x, corner.y, centerX, centerY, rotation)
-        );
+          const rotatedCorners = corners.map(corner => 
+            rotatePoint(corner.x, corner.y, centerX, centerY, rotation)
+          );
 
-        for (const handle of rotatedCorners) {
-          this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
-        }
+          for (const handle of rotatedCorners) {
+            this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+          }
 
-        // Edge handles
-        const edges = [
-          { x: obj.x + obj.width / 2, y: obj.y },
-          { x: obj.x + obj.width / 2, y: obj.y + obj.height },
-          { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
-          { x: obj.x, y: obj.y + obj.height / 2 }
-        ];
+          // Edge handles
+          const edges = [
+            { x: obj.x + obj.width / 2, y: obj.y },
+            { x: obj.x + obj.width / 2, y: obj.y + obj.height },
+            { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
+            { x: obj.x, y: obj.y + obj.height / 2 }
+          ];
 
-        const rotatedEdges = edges.map(edge => 
-          rotatePoint(edge.x, edge.y, centerX, centerY, rotation)
-        );
+          const rotatedEdges = edges.map(edge => 
+            rotatePoint(edge.x, edge.y, centerX, centerY, rotation)
+          );
 
-        for (const handle of rotatedEdges) {
-          this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+          for (const handle of rotatedEdges) {
+            this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+          }
         }
 
         // Draw rotation handle
