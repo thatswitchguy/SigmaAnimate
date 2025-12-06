@@ -55,7 +55,6 @@ class AnimationStudio {
     this.rotationHandle = null;
     this.selectionBox = null;
     this.isSelecting = false;
-    this.deformMode = false;
 
     // History for undo/redo
     this.history = [];
@@ -210,7 +209,6 @@ class AnimationStudio {
     // Tool buttons
     document.getElementById('pencilBtn').addEventListener('click', () => this.setTool('pencil'));
     document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('mouse'));
-    document.getElementById('deformBtn').addEventListener('click', () => this.setTool('deform'));
     document.getElementById('fillBtn').addEventListener('click', () => this.setTool('fill'));
     document.getElementById('eraserBtn').addEventListener('click', () => this.setTool('eraser'));
     document.getElementById('textBtn').addEventListener('click', () => this.setTool('text'));
@@ -349,9 +347,6 @@ class AnimationStudio {
       this.canvas.classList.add('cursor-pencil');
     } else if (tool === 'mouse') {
       document.getElementById('smartDrawBtn').classList.add('active');
-      this.canvas.classList.add('cursor-mouse');
-    } else if (tool === 'deform') {
-      document.getElementById('deformBtn').classList.add('active');
       this.canvas.classList.add('cursor-mouse');
     } else if (tool === 'fill') {
       document.getElementById('fillBtn').classList.add('active');
@@ -631,9 +626,9 @@ class AnimationStudio {
       return;
     }
 
-    if (this.tool === 'mouse' || this.tool === 'deform') {
-      // Check if clicking on rotation handle (only in mouse mode)
-      if (this.tool === 'mouse' && this.getRotationHandle(pos.x, pos.y) && this.selectedObjects.length === 1) {
+    if (this.tool === 'mouse') {
+      // Check if clicking on rotation handle
+      if (this.getRotationHandle(pos.x, pos.y) && this.selectedObjects.length === 1) {
         this.isRotating = true;
         this.dragStartX = pos.x;
         this.dragStartY = pos.y;
@@ -650,30 +645,6 @@ class AnimationStudio {
         return;
       }
 
-      // In deform mode, only allow resizing, not dragging or selection box
-      if (this.tool === 'deform') {
-        // Check if clicking on object to select it (but don't drag)
-        const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
-        if (clickedObject) {
-          if (!e.shiftKey) {
-            this.selectedObjects = [clickedObject];
-          } else {
-            const index = this.selectedObjects.indexOf(clickedObject);
-            if (index === -1) {
-              this.selectedObjects.push(clickedObject);
-            } else {
-              this.selectedObjects.splice(index, 1);
-            }
-          }
-        } else {
-          // Clicking empty space deselects
-          this.selectedObjects = [];
-        }
-        this.render();
-        return;
-      }
-
-      // Mouse mode: allow dragging and selection box
       // Check if clicking on object
       const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
       if (clickedObject) {
@@ -739,7 +710,7 @@ class AnimationStudio {
       return;
     }
 
-    if (this.tool === 'mouse' || this.tool === 'deform') {
+    if (this.tool === 'mouse') {
       if (this.isRotating && this.selectedObjects.length === 1) {
         const obj = this.selectedObjects[0];
         const centerX = obj.x + obj.width / 2;
@@ -758,97 +729,56 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
-        if (this.tool === 'deform') {
-          // Deform mode: allow squishing by moving edges independently
-          if (this.resizeHandle === 'se') {
-            obj.width += dx;
-            obj.height += dy;
-          } else if (this.resizeHandle === 'sw') {
-            obj.x += dx;
-            obj.width -= dx;
-            obj.height += dy;
-          } else if (this.resizeHandle === 'ne') {
-            obj.y += dy;
-            obj.width += dx;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 'nw') {
-            obj.x += dx;
-            obj.y += dy;
-            obj.width -= dx;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 'n') {
-            obj.y += dy;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 's') {
-            obj.height += dy;
-          } else if (this.resizeHandle === 'e') {
-            obj.width += dx;
-          } else if (this.resizeHandle === 'w') {
-            obj.x += dx;
-            obj.width -= dx;
-          }
-          
-          // In deform mode, prevent dimensions from becoming too small
-          // Keep minimum absolute value of 5px to prevent rendering errors
-          const minSize = 5;
-          if (Math.abs(obj.width) < minSize) {
-            obj.width = obj.width < 0 ? -minSize : minSize;
-          }
-          if (Math.abs(obj.height) < minSize) {
-            obj.height = obj.height < 0 ? -minSize : minSize;
-          }
-        } else {
-          // Normal resize mode: maintain aspect ratio and prevent negative dimensions
-          if (this.resizeHandle === 'se') {
-            obj.width += dx;
-            obj.height += dy;
-          } else if (this.resizeHandle === 'sw') {
-            obj.x += dx;
-            obj.width -= dx;
-            obj.height += dy;
-          } else if (this.resizeHandle === 'ne') {
-            obj.y += dy;
-            obj.width += dx;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 'nw') {
-            obj.x += dx;
-            obj.y += dy;
-            obj.width -= dx;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 'n') {
-            obj.y += dy;
-            obj.height -= dy;
-          } else if (this.resizeHandle === 's') {
-            obj.height += dy;
-          } else if (this.resizeHandle === 'e') {
-            obj.width += dx;
-          } else if (this.resizeHandle === 'w') {
-            obj.x += dx;
-            obj.width -= dx;
-          }
+        // Normal resize mode: maintain aspect ratio and prevent negative dimensions
+        if (this.resizeHandle === 'se') {
+          obj.width += dx;
+          obj.height += dy;
+        } else if (this.resizeHandle === 'sw') {
+          obj.x += dx;
+          obj.width -= dx;
+          obj.height += dy;
+        } else if (this.resizeHandle === 'ne') {
+          obj.y += dy;
+          obj.width += dx;
+          obj.height -= dy;
+        } else if (this.resizeHandle === 'nw') {
+          obj.x += dx;
+          obj.y += dy;
+          obj.width -= dx;
+          obj.height -= dy;
+        } else if (this.resizeHandle === 'n') {
+          obj.y += dy;
+          obj.height -= dy;
+        } else if (this.resizeHandle === 's') {
+          obj.height += dy;
+        } else if (this.resizeHandle === 'e') {
+          obj.width += dx;
+        } else if (this.resizeHandle === 'w') {
+          obj.x += dx;
+          obj.width -= dx;
+        }
 
-          // Normalize negative dimensions (flip the shape)
-          if (obj.width < 0) {
-            obj.x += obj.width;
-            obj.width = Math.abs(obj.width);
-            if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
-            else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
-            else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
-            else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
-            else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
-            else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
-          }
-          
-          if (obj.height < 0) {
-            obj.y += obj.height;
-            obj.height = Math.abs(obj.height);
-            if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
-            else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
-            else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
-            else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
-            else if (this.resizeHandle === 's') this.resizeHandle = 'n';
-            else if (this.resizeHandle === 'n') this.resizeHandle = 's';
-          }
+        // Normalize negative dimensions (flip the shape)
+        if (obj.width < 0) {
+          obj.x += obj.width;
+          obj.width = Math.abs(obj.width);
+          if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
+          else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
+          else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
+          else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
+          else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
+          else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
+        }
+        
+        if (obj.height < 0) {
+          obj.y += obj.height;
+          obj.height = Math.abs(obj.height);
+          if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
+          else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
+          else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
+          else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
+          else if (this.resizeHandle === 's') this.resizeHandle = 'n';
+          else if (this.resizeHandle === 'n') this.resizeHandle = 's';
         }
 
         this.dragStartX = pos.x;
@@ -1783,7 +1713,7 @@ class AnimationStudio {
     }
 
     // Draw selection highlights and resize handles
-    if ((this.tool === 'mouse' || this.tool === 'deform') && this.selectedObjects.length > 0) {
+    if (this.tool === 'mouse' && this.selectedObjects.length > 0) {
       this.ctx.strokeStyle = '#0078d4';
       this.ctx.lineWidth = 2;
       this.ctx.setLineDash([5, 5]);
@@ -1857,37 +1787,35 @@ class AnimationStudio {
           this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         }
 
-        // Draw rotation handle (only in mouse mode, not deform mode)
-        if (this.tool === 'mouse') {
-          const rotateHandleOffset = rotatePoint(
-            obj.x + obj.width / 2,
-            obj.y - 20,
-            centerX,
-            centerY,
-            rotation
-          );
-          
-          this.ctx.beginPath();
-          this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
-          this.ctx.fill();
+        // Draw rotation handle
+        const rotateHandleOffset = rotatePoint(
+          obj.x + obj.width / 2,
+          obj.y - 20,
+          centerX,
+          centerY,
+          rotation
+        );
+        
+        this.ctx.beginPath();
+        this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
 
-          // Draw line connecting rotation handle
-          this.ctx.strokeStyle = '#0078d4';
-          this.ctx.lineWidth = 1;
-          this.ctx.beginPath();
-          this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
-          
-          const topCenterRotated = rotatePoint(
-            obj.x + obj.width / 2,
-            obj.y,
-            centerX,
-            centerY,
-            rotation
-          );
-          
-          this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
-          this.ctx.stroke();
-        }
+        // Draw line connecting rotation handle
+        this.ctx.strokeStyle = '#0078d4';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
+        
+        const topCenterRotated = rotatePoint(
+          obj.x + obj.width / 2,
+          obj.y,
+          centerX,
+          centerY,
+          rotation
+        );
+        
+        this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
+        this.ctx.stroke();
       }
     }
   }
@@ -1915,14 +1843,7 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
       ctx.beginPath();
-      // Use absolute values to handle negative dimensions in deform mode
-      const absWidth = Math.abs(obj.width);
-      const absHeight = Math.abs(obj.height);
-      const radius = Math.abs(absWidth / 2);
-      // Calculate center based on actual position and size
-      const centerX = obj.x + groupOffsetX + absWidth / 2;
-      const centerY = obj.y + groupOffsetY + absHeight / 2;
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     } else if (obj.type === 'square') {
