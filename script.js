@@ -788,12 +788,14 @@ class AnimationStudio {
             obj.width -= dx;
           }
           
-          // Prevent dimensions from becoming too small (at least 5px)
-          if (Math.abs(obj.width) < 5) {
-            obj.width = obj.width < 0 ? -5 : 5;
+          // In deform mode, prevent dimensions from becoming too small
+          // Keep minimum absolute value of 5px to prevent rendering errors
+          const minSize = 5;
+          if (Math.abs(obj.width) < minSize) {
+            obj.width = obj.width < 0 ? -minSize : minSize;
           }
-          if (Math.abs(obj.height) < 5) {
-            obj.height = obj.height < 0 ? -5 : 5;
+          if (Math.abs(obj.height) < minSize) {
+            obj.height = obj.height < 0 ? -minSize : minSize;
           }
         } else {
           // Normal resize mode: maintain aspect ratio and prevent negative dimensions
