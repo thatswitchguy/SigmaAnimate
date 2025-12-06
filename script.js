@@ -2101,9 +2101,7 @@ class AnimationStudio {
     scrubber.appendChild(handle);
     scrubber.appendChild(timeDisplay);
     
-    // Add scrubber interaction
-    let isDraggingScrubber = false;
-    
+    // Add scrubber interaction - click only
     const updateScrubberPosition = (e) => {
       const rect = scrubber.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -2115,19 +2113,8 @@ class AnimationStudio {
       }
     };
     
-    scrubber.addEventListener('mousedown', (e) => {
-      isDraggingScrubber = true;
+    scrubber.addEventListener('click', (e) => {
       updateScrubberPosition(e);
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-      if (isDraggingScrubber) {
-        updateScrubberPosition(e);
-      }
-    });
-    
-    document.addEventListener('mouseup', () => {
-      isDraggingScrubber = false;
     });
     
     timelineContainer.appendChild(lengthIndicator);

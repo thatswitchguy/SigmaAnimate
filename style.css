@@ -414,13 +414,10 @@ main {
   background: #0078d4;
   border: 2px solid #fff;
   border-radius: 3px;
-  cursor: grab;
+  cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   z-index: 10;
-}
-
-.timeline-scrubber-handle:active {
-  cursor: grabbing;
+  pointer-events: none;
 }
 
 .timeline-scrubber-time {
