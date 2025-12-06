@@ -730,21 +730,29 @@ class AnimationStudio {
         const dy = pos.y - this.dragStartY;
 
         if (this.resizeHandle === 'se') {
-          obj.width += dx;
-          obj.height += dy;
+          obj.width = Math.max(10, obj.width + dx);
+          obj.height = Math.max(10, obj.height + dy);
         } else if (this.resizeHandle === 'sw') {
-          obj.x += dx;
-          obj.width -= dx;
-          obj.height += dy;
+          const newWidth = Math.max(10, obj.width - dx);
+          const widthDiff = obj.width - newWidth;
+          obj.x += widthDiff;
+          obj.width = newWidth;
+          obj.height = Math.max(10, obj.height + dy);
         } else if (this.resizeHandle === 'ne') {
-          obj.width += dx;
-          obj.y += dy;
-          obj.height -= dy;
+          obj.width = Math.max(10, obj.width + dx);
+          const newHeight = Math.max(10, obj.height - dy);
+          const heightDiff = obj.height - newHeight;
+          obj.y += heightDiff;
+          obj.height = newHeight;
         } else if (this.resizeHandle === 'nw') {
-          obj.x += dx;
-          obj.width -= dx;
-          obj.y += dy;
-          obj.height -= dy;
+          const newWidth = Math.max(10, obj.width - dx);
+          const widthDiff = obj.width - newWidth;
+          obj.x += widthDiff;
+          obj.width = newWidth;
+          const newHeight = Math.max(10, obj.height - dy);
+          const heightDiff = obj.height - newHeight;
+          obj.y += heightDiff;
+          obj.height = newHeight;
         }
 
         this.dragStartX = pos.x;
@@ -2081,7 +2089,7 @@ class AnimationStudio {
     
     const progress = document.createElement('div');
     progress.className = 'timeline-scrubber-progress';
-    const progressPercent = this.frames.length > 0 ? (this.currentFrameIndex / this.frames.length) * 100 : 0;
+    const progressPercent = this.frames.length > 0 ? ((this.currentFrameIndex + 1) / this.frames.length) * 100 : 0;
     progress.style.width = progressPercent + '%';
     
     const handle = document.createElement('div');
@@ -2101,7 +2109,7 @@ class AnimationStudio {
       const rect = scrubber.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const percent = Math.max(0, Math.min(1, x / rect.width));
-      const frameIndex = Math.floor(percent * this.frames.length);
+      const frameIndex = Math.min(Math.floor(percent * this.frames.length), this.frames.length - 1);
       
       if (frameIndex >= 0 && frameIndex < this.frames.length) {
         this.selectFrame(frameIndex);
