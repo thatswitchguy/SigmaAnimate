@@ -729,35 +729,49 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
-        // Corner handles
+        // Store original values
+        const originalX = obj.x;
+        const originalY = obj.y;
+        const originalWidth = obj.width;
+        const originalHeight = obj.height;
+
+        // Corner handles - adjust both position and size
         if (this.resizeHandle === 'se') {
-          obj.width += dx;
-          obj.height += dy;
+          // Bottom-right: only increase size
+          obj.width = originalWidth + dx;
+          obj.height = originalHeight + dy;
         } else if (this.resizeHandle === 'sw') {
-          obj.x += dx;
-          obj.width -= dx;
-          obj.height += dy;
+          // Bottom-left: move left edge, increase height
+          obj.x = originalX + dx;
+          obj.width = originalWidth - dx;
+          obj.height = originalHeight + dy;
         } else if (this.resizeHandle === 'ne') {
-          obj.y += dy;
-          obj.width += dx;
-          obj.height -= dy;
+          // Top-right: move top edge, increase width
+          obj.y = originalY + dy;
+          obj.width = originalWidth + dx;
+          obj.height = originalHeight - dy;
         } else if (this.resizeHandle === 'nw') {
-          obj.x += dx;
-          obj.y += dy;
-          obj.width -= dx;
-          obj.height -= dy;
+          // Top-left: move both edges
+          obj.x = originalX + dx;
+          obj.y = originalY + dy;
+          obj.width = originalWidth - dx;
+          obj.height = originalHeight - dy;
         }
         // Edge handles
         else if (this.resizeHandle === 'n') {
-          obj.y += dy;
-          obj.height -= dy;
+          // Top edge
+          obj.y = originalY + dy;
+          obj.height = originalHeight - dy;
         } else if (this.resizeHandle === 's') {
-          obj.height += dy;
+          // Bottom edge
+          obj.height = originalHeight + dy;
         } else if (this.resizeHandle === 'e') {
-          obj.width += dx;
+          // Right edge
+          obj.width = originalWidth + dx;
         } else if (this.resizeHandle === 'w') {
-          obj.x += dx;
-          obj.width -= dx;
+          // Left edge
+          obj.x = originalX + dx;
+          obj.width = originalWidth - dx;
         }
 
         this.dragStartX = pos.x;
