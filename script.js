@@ -729,26 +729,43 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
+        // Corner handles
         if (this.resizeHandle === 'se') {
-          // Bottom-right: increase width and height
-          obj.width = Math.max(10, obj.width + dx);
-          obj.height = Math.max(10, obj.height + dy);
+          obj.width += dx;
+          obj.height += dy;
         } else if (this.resizeHandle === 'sw') {
-          // Bottom-left: move left edge and increase height
           obj.x += dx;
-          obj.width = Math.max(10, obj.width - dx);
-          obj.height = Math.max(10, obj.height + dy);
+          obj.width -= dx;
+          obj.height += dy;
         } else if (this.resizeHandle === 'ne') {
-          // Top-right: move top edge and increase width
           obj.y += dy;
-          obj.width = Math.max(10, obj.width + dx);
-          obj.height = Math.max(10, obj.height - dy);
+          obj.width += dx;
+          obj.height -= dy;
         } else if (this.resizeHandle === 'nw') {
-          // Top-left: move both edges
           obj.x += dx;
           obj.y += dy;
-          obj.width = Math.max(10, obj.width - dx);
-          obj.height = Math.max(10, obj.height - dy);
+          obj.width -= dx;
+          obj.height -= dy;
+        }
+        // Edge handles
+        else if (this.resizeHandle === 'n') {
+          obj.y += dy;
+          obj.height -= dy;
+        } else if (this.resizeHandle === 's') {
+          obj.height += dy;
+        } else if (this.resizeHandle === 'e') {
+          obj.width += dx;
+        } else if (this.resizeHandle === 'w') {
+          obj.x += dx;
+          obj.width -= dx;
+        }
+
+        // Enforce minimum size
+        if (obj.width < 10) {
+          obj.width = 10;
+        }
+        if (obj.height < 10) {
+          obj.height = 10;
         }
 
         this.dragStartX = pos.x;
@@ -1230,6 +1247,7 @@ class AnimationStudio {
       };
     };
 
+    // Corner handles
     const corners = {
       nw: { x: obj.x, y: obj.y },
       ne: { x: obj.x + obj.width, y: obj.y },
@@ -1238,6 +1256,22 @@ class AnimationStudio {
     };
     
     for (const [name, pos] of Object.entries(corners)) {
+      const rotated = rotatePoint(pos.x, pos.y, centerX, centerY, rotation);
+      if (x >= rotated.x - handleSize && x <= rotated.x + handleSize &&
+          y >= rotated.y - handleSize && y <= rotated.y + handleSize) {
+        return name;
+      }
+    }
+
+    // Edge handles
+    const edges = {
+      n: { x: obj.x + obj.width / 2, y: obj.y },
+      s: { x: obj.x + obj.width / 2, y: obj.y + obj.height },
+      e: { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
+      w: { x: obj.x, y: obj.y + obj.height / 2 }
+    };
+    
+    for (const [name, pos] of Object.entries(edges)) {
       const rotated = rotatePoint(pos.x, pos.y, centerX, centerY, rotation);
       if (x >= rotated.x - handleSize && x <= rotated.x + handleSize &&
           y >= rotated.y - handleSize && y <= rotated.y + handleSize) {
@@ -1696,14 +1730,6 @@ class AnimationStudio {
         const centerX = obj.x + obj.width / 2;
         const centerY = obj.y + obj.height / 2;
 
-        // Calculate rotated handle positions
-        const corners = [
-          { x: obj.x, y: obj.y },
-          { x: obj.x + obj.width, y: obj.y },
-          { x: obj.x, y: obj.y + obj.height },
-          { x: obj.x + obj.width, y: obj.y + obj.height }
-        ];
-
         const rotatePoint = (px, py, cx, cy, angle) => {
           const rad = angle * Math.PI / 180;
           const cos = Math.cos(rad);
@@ -1716,11 +1742,35 @@ class AnimationStudio {
           };
         };
 
+        // Corner handles
+        const corners = [
+          { x: obj.x, y: obj.y },
+          { x: obj.x + obj.width, y: obj.y },
+          { x: obj.x, y: obj.y + obj.height },
+          { x: obj.x + obj.width, y: obj.y + obj.height }
+        ];
+
         const rotatedCorners = corners.map(corner => 
           rotatePoint(corner.x, corner.y, centerX, centerY, rotation)
         );
 
         for (const handle of rotatedCorners) {
+          this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+        }
+
+        // Edge handles
+        const edges = [
+          { x: obj.x + obj.width / 2, y: obj.y },
+          { x: obj.x + obj.width / 2, y: obj.y + obj.height },
+          { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
+          { x: obj.x, y: obj.y + obj.height / 2 }
+        ];
+
+        const rotatedEdges = edges.map(edge => 
+          rotatePoint(edge.x, edge.y, centerX, centerY, rotation)
+        );
+
+        for (const handle of rotatedEdges) {
           this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         }
 
