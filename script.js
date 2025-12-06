@@ -768,6 +768,31 @@ class AnimationStudio {
           obj.width -= dx;
         }
 
+        // Normalize negative dimensions (flip the shape)
+        if (obj.width < 0) {
+          obj.x += obj.width;
+          obj.width = Math.abs(obj.width);
+          // Flip resize handle horizontally
+          if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
+          else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
+          else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
+          else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
+          else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
+          else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
+        }
+        
+        if (obj.height < 0) {
+          obj.y += obj.height;
+          obj.height = Math.abs(obj.height);
+          // Flip resize handle vertically
+          if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
+          else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
+          else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
+          else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
+          else if (this.resizeHandle === 's') this.resizeHandle = 'n';
+          else if (this.resizeHandle === 'n') this.resizeHandle = 's';
+        }
+
         this.dragStartX = pos.x;
         this.dragStartY = pos.y;
         this.render();
