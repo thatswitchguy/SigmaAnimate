@@ -210,6 +210,7 @@ class AnimationStudio {
     // Tool buttons
     document.getElementById('pencilBtn').addEventListener('click', () => this.setTool('pencil'));
     document.getElementById('smartDrawBtn').addEventListener('click', () => this.setTool('mouse'));
+    document.getElementById('deformBtn').addEventListener('click', () => this.setTool('deform'));
     document.getElementById('fillBtn').addEventListener('click', () => this.setTool('fill'));
     document.getElementById('eraserBtn').addEventListener('click', () => this.setTool('eraser'));
     document.getElementById('textBtn').addEventListener('click', () => this.setTool('text'));
@@ -256,10 +257,6 @@ class AnimationStudio {
 
     document.getElementById('smartDrawToggle').addEventListener('change', (e) => {
       this.smartDrawEnabled = e.target.checked;
-    });
-
-    document.getElementById('deformModeToggle').addEventListener('change', (e) => {
-      this.deformMode = e.target.checked;
     });
 
     // Background controls
@@ -352,6 +349,9 @@ class AnimationStudio {
       this.canvas.classList.add('cursor-pencil');
     } else if (tool === 'mouse') {
       document.getElementById('smartDrawBtn').classList.add('active');
+      this.canvas.classList.add('cursor-mouse');
+    } else if (tool === 'deform') {
+      document.getElementById('deformBtn').classList.add('active');
       this.canvas.classList.add('cursor-mouse');
     } else if (tool === 'fill') {
       document.getElementById('fillBtn').classList.add('active');
@@ -631,9 +631,9 @@ class AnimationStudio {
       return;
     }
 
-    if (this.tool === 'mouse') {
-      // Check if clicking on rotation handle
-      if (this.getRotationHandle(pos.x, pos.y) && this.selectedObjects.length === 1) {
+    if (this.tool === 'mouse' || this.tool === 'deform') {
+      // Check if clicking on rotation handle (only in mouse mode)
+      if (this.tool === 'mouse' && this.getRotationHandle(pos.x, pos.y) && this.selectedObjects.length === 1) {
         this.isRotating = true;
         this.dragStartX = pos.x;
         this.dragStartY = pos.y;
@@ -715,7 +715,7 @@ class AnimationStudio {
       return;
     }
 
-    if (this.tool === 'mouse') {
+    if (this.tool === 'mouse' || this.tool === 'deform') {
       if (this.isRotating && this.selectedObjects.length === 1) {
         const obj = this.selectedObjects[0];
         const centerX = obj.x + obj.width / 2;
@@ -734,7 +734,7 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
-        if (this.deformMode) {
+        if (this.tool === 'deform') {
           // Deform mode: allow squishing by moving edges independently
           if (this.resizeHandle === 'se') {
             obj.width += dx;
@@ -1752,7 +1752,7 @@ class AnimationStudio {
     }
 
     // Draw selection highlights and resize handles
-    if (this.tool === 'mouse' && this.selectedObjects.length > 0) {
+    if ((this.tool === 'mouse' || this.tool === 'deform') && this.selectedObjects.length > 0) {
       this.ctx.strokeStyle = '#0078d4';
       this.ctx.lineWidth = 2;
       this.ctx.setLineDash([5, 5]);
@@ -1826,35 +1826,37 @@ class AnimationStudio {
           this.ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         }
 
-        // Draw rotation handle
-        const rotateHandleOffset = rotatePoint(
-          obj.x + obj.width / 2,
-          obj.y - 20,
-          centerX,
-          centerY,
-          rotation
-        );
-        
-        this.ctx.beginPath();
-        this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
-        this.ctx.fill();
+        // Draw rotation handle (only in mouse mode, not deform mode)
+        if (this.tool === 'mouse') {
+          const rotateHandleOffset = rotatePoint(
+            obj.x + obj.width / 2,
+            obj.y - 20,
+            centerX,
+            centerY,
+            rotation
+          );
+          
+          this.ctx.beginPath();
+          this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
+          this.ctx.fill();
 
-        // Draw line connecting rotation handle
-        this.ctx.strokeStyle = '#0078d4';
-        this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
-        
-        const topCenterRotated = rotatePoint(
-          obj.x + obj.width / 2,
-          obj.y,
-          centerX,
-          centerY,
-          rotation
-        );
-        
-        this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
-        this.ctx.stroke();
+          // Draw line connecting rotation handle
+          this.ctx.strokeStyle = '#0078d4';
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
+          
+          const topCenterRotated = rotatePoint(
+            obj.x + obj.width / 2,
+            obj.y,
+            centerX,
+            centerY,
+            rotation
+          );
+          
+          this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
+          this.ctx.stroke();
+        }
       }
     }
   }
