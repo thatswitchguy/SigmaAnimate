@@ -1915,12 +1915,13 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
       ctx.beginPath();
-      // Use absolute values for both radius and center position to handle negative dimensions
+      // Use absolute values to handle negative dimensions in deform mode
       const absWidth = Math.abs(obj.width);
       const absHeight = Math.abs(obj.height);
-      const radius = absWidth / 2;
-      const centerX = obj.x + groupOffsetX + (obj.width < 0 ? -absWidth / 2 : absWidth / 2);
-      const centerY = obj.y + groupOffsetY + (obj.height < 0 ? -absHeight / 2 : absHeight / 2);
+      const radius = Math.abs(absWidth / 2);
+      // Calculate center based on actual position and size
+      const centerX = obj.x + groupOffsetX + absWidth / 2;
+      const centerY = obj.y + groupOffsetY + absHeight / 2;
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
