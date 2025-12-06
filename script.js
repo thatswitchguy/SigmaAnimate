@@ -55,6 +55,7 @@ class AnimationStudio {
     this.rotationHandle = null;
     this.selectionBox = null;
     this.isSelecting = false;
+    this.deformMode = false;
 
     // History for undo/redo
     this.history = [];
@@ -255,6 +256,10 @@ class AnimationStudio {
 
     document.getElementById('smartDrawToggle').addEventListener('change', (e) => {
       this.smartDrawEnabled = e.target.checked;
+    });
+
+    document.getElementById('deformModeToggle').addEventListener('change', (e) => {
+      this.deformMode = e.target.checked;
     });
 
     // Background controls
@@ -729,68 +734,90 @@ class AnimationStudio {
         const dx = pos.x - this.dragStartX;
         const dy = pos.y - this.dragStartY;
 
-        // Corner handles - adjust both position and size
-        if (this.resizeHandle === 'se') {
-          // Bottom-right: only increase size
-          obj.width += dx;
-          obj.height += dy;
-        } else if (this.resizeHandle === 'sw') {
-          // Bottom-left: move left edge, increase height
-          obj.x += dx;
-          obj.width -= dx;
-          obj.height += dy;
-        } else if (this.resizeHandle === 'ne') {
-          // Top-right: move top edge, increase width
-          obj.y += dy;
-          obj.width += dx;
-          obj.height -= dy;
-        } else if (this.resizeHandle === 'nw') {
-          // Top-left: move both edges
-          obj.x += dx;
-          obj.y += dy;
-          obj.width -= dx;
-          obj.height -= dy;
-        }
-        // Edge handles
-        else if (this.resizeHandle === 'n') {
-          // Top edge
-          obj.y += dy;
-          obj.height -= dy;
-        } else if (this.resizeHandle === 's') {
-          // Bottom edge
-          obj.height += dy;
-        } else if (this.resizeHandle === 'e') {
-          // Right edge
-          obj.width += dx;
-        } else if (this.resizeHandle === 'w') {
-          // Left edge
-          obj.x += dx;
-          obj.width -= dx;
-        }
+        if (this.deformMode) {
+          // Deform mode: allow squishing by moving edges independently
+          if (this.resizeHandle === 'se') {
+            obj.width += dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'sw') {
+            obj.x += dx;
+            obj.width -= dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'ne') {
+            obj.y += dy;
+            obj.width += dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'nw') {
+            obj.x += dx;
+            obj.y += dy;
+            obj.width -= dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'n') {
+            obj.y += dy;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 's') {
+            obj.height += dy;
+          } else if (this.resizeHandle === 'e') {
+            obj.width += dx;
+          } else if (this.resizeHandle === 'w') {
+            obj.x += dx;
+            obj.width -= dx;
+          }
+          
+          // In deform mode, allow negative dimensions for squishing
+          // No normalization - this allows true deformation
+        } else {
+          // Normal resize mode: maintain aspect ratio and prevent negative dimensions
+          if (this.resizeHandle === 'se') {
+            obj.width += dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'sw') {
+            obj.x += dx;
+            obj.width -= dx;
+            obj.height += dy;
+          } else if (this.resizeHandle === 'ne') {
+            obj.y += dy;
+            obj.width += dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'nw') {
+            obj.x += dx;
+            obj.y += dy;
+            obj.width -= dx;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 'n') {
+            obj.y += dy;
+            obj.height -= dy;
+          } else if (this.resizeHandle === 's') {
+            obj.height += dy;
+          } else if (this.resizeHandle === 'e') {
+            obj.width += dx;
+          } else if (this.resizeHandle === 'w') {
+            obj.x += dx;
+            obj.width -= dx;
+          }
 
-        // Normalize negative dimensions (flip the shape)
-        if (obj.width < 0) {
-          obj.x += obj.width;
-          obj.width = Math.abs(obj.width);
-          // Flip resize handle horizontally
-          if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
-          else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
-          else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
-          else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
-          else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
-          else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
-        }
-        
-        if (obj.height < 0) {
-          obj.y += obj.height;
-          obj.height = Math.abs(obj.height);
-          // Flip resize handle vertically
-          if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
-          else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
-          else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
-          else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
-          else if (this.resizeHandle === 's') this.resizeHandle = 'n';
-          else if (this.resizeHandle === 'n') this.resizeHandle = 's';
+          // Normalize negative dimensions (flip the shape)
+          if (obj.width < 0) {
+            obj.x += obj.width;
+            obj.width = Math.abs(obj.width);
+            if (this.resizeHandle === 'se') this.resizeHandle = 'sw';
+            else if (this.resizeHandle === 'sw') this.resizeHandle = 'se';
+            else if (this.resizeHandle === 'ne') this.resizeHandle = 'nw';
+            else if (this.resizeHandle === 'nw') this.resizeHandle = 'ne';
+            else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
+            else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
+          }
+          
+          if (obj.height < 0) {
+            obj.y += obj.height;
+            obj.height = Math.abs(obj.height);
+            if (this.resizeHandle === 'se') this.resizeHandle = 'ne';
+            else if (this.resizeHandle === 'sw') this.resizeHandle = 'nw';
+            else if (this.resizeHandle === 'ne') this.resizeHandle = 'se';
+            else if (this.resizeHandle === 'nw') this.resizeHandle = 'sw';
+            else if (this.resizeHandle === 's') this.resizeHandle = 'n';
+            else if (this.resizeHandle === 'n') this.resizeHandle = 's';
+          }
         }
 
         this.dragStartX = pos.x;
