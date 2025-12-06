@@ -2075,11 +2075,6 @@ class AnimationStudio {
     const currentMinutes = Math.floor(currentTime / 60);
     const currentSeconds = (currentTime % 60).toFixed(2);
     
-    // Create video length indicator
-    const lengthIndicator = document.createElement('div');
-    lengthIndicator.className = 'video-length-indicator';
-    lengthIndicator.textContent = `Video Length: ${minutes}:${seconds.padStart(5, '0')} | ${this.frames.length} frames @ ${this.fps} FPS`;
-    
     // Create timeline scrubber
     const scrubber = document.createElement('div');
     scrubber.className = 'timeline-scrubber';
@@ -2117,7 +2112,6 @@ class AnimationStudio {
       updateScrubberPosition(e);
     });
     
-    timelineContainer.appendChild(lengthIndicator);
     timelineContainer.appendChild(scrubber);
   }
 
