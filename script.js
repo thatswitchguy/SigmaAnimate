@@ -760,12 +760,14 @@ class AnimationStudio {
           obj.width -= dx;
         }
 
-        // Enforce minimum size
-        if (obj.width < 10) {
-          obj.width = 10;
+        // Allow negative dimensions for flipping/squishing
+        // Just enforce a very small minimum to prevent complete collapse
+        const minSize = 5;
+        if (Math.abs(obj.width) < minSize) {
+          obj.width = obj.width < 0 ? -minSize : minSize;
         }
-        if (obj.height < 10) {
-          obj.height = 10;
+        if (Math.abs(obj.height) < minSize) {
+          obj.height = obj.height < 0 ? -minSize : minSize;
         }
 
         this.dragStartX = pos.x;
