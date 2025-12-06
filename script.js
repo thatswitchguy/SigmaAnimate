@@ -650,7 +650,7 @@ class AnimationStudio {
         return;
       }
 
-      // In deform mode, only allow resizing, not dragging or selection
+      // In deform mode, only allow resizing, not dragging or selection box
       if (this.tool === 'deform') {
         // Check if clicking on object to select it (but don't drag)
         const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
@@ -665,12 +665,11 @@ class AnimationStudio {
               this.selectedObjects.splice(index, 1);
             }
           }
-          this.render();
         } else {
           // Clicking empty space deselects
           this.selectedObjects = [];
-          this.render();
         }
+        this.render();
         return;
       }
 
@@ -789,8 +788,13 @@ class AnimationStudio {
             obj.width -= dx;
           }
           
-          // In deform mode, allow negative dimensions for squishing
-          // No normalization - this allows true deformation
+          // Prevent dimensions from becoming too small (at least 5px)
+          if (Math.abs(obj.width) < 5) {
+            obj.width = obj.width < 0 ? -5 : 5;
+          }
+          if (Math.abs(obj.height) < 5) {
+            obj.height = obj.height < 0 ? -5 : 5;
+          }
         } else {
           // Normal resize mode: maintain aspect ratio and prevent negative dimensions
           if (this.resizeHandle === 'se') {
@@ -1909,7 +1913,9 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.lineWidth = obj.lineWidth;
       ctx.beginPath();
-      ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+      // Use absolute value for radius to handle negative dimensions
+      const radius = Math.abs(obj.width) / 2;
+      ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     } else if (obj.type === 'square') {
