@@ -650,6 +650,31 @@ class AnimationStudio {
         return;
       }
 
+      // In deform mode, only allow resizing, not dragging or selection
+      if (this.tool === 'deform') {
+        // Check if clicking on object to select it (but don't drag)
+        const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
+        if (clickedObject) {
+          if (!e.shiftKey) {
+            this.selectedObjects = [clickedObject];
+          } else {
+            const index = this.selectedObjects.indexOf(clickedObject);
+            if (index === -1) {
+              this.selectedObjects.push(clickedObject);
+            } else {
+              this.selectedObjects.splice(index, 1);
+            }
+          }
+          this.render();
+        } else {
+          // Clicking empty space deselects
+          this.selectedObjects = [];
+          this.render();
+        }
+        return;
+      }
+
+      // Mouse mode: allow dragging and selection box
       // Check if clicking on object
       const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
       if (clickedObject) {
