@@ -340,7 +340,14 @@ class AnimationStudio {
     // Preview button
     document.getElementById('previewBtn').addEventListener('click', () => this.openPreview());
 
+    // Logout and Projects buttons
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await this.authManager.logout();
+    });
 
+    document.getElementById('projectsBtn').addEventListener('click', () => {
+      window.location.href = 'projects.html';
+    });
 
     // Clipboard controls
     document.getElementById('copyBtn').addEventListener('click', () => this.copySelectedObjects());

@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Projects - Sigma Animate</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #2e2e2e;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #444;
+    }
+    h1 {
+      font-size: 32px;
+    }
+    .user-info {
+      color: #aaa;
+      font-size: 14px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 10px 20px;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .btn-secondary {
+      background: #3d3d3d;
+    }
+    .btn-secondary:hover {
+      background: #4d4d4d;
+    }
+    .btn-danger {
+      background: #dc3545;
+    }
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .project-card {
+      background: #3d3d3d;
+      padding: 20px;
+      border-radius: 12px;
+      border: 2px solid #555;
+      transition: all 0.2s;
+    }
+    .project-card:hover {
+      border-color: #0078d4;
+      transform: translateY(-2px);
+    }
+    .project-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+    .project-date {
+      color: #aaa;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
+    .project-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .project-actions button {
+      flex: 1;
+      min-width: 80px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #aaa;
+    }
+    .empty-state h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      font-size: 18px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>My Projects</h1>
+        <div class="user-info" id="userInfo">Loading...</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="window.location.href='index.html'">← Back to Studio</button>
+      <button class="btn btn-secondary" id="newProjectBtn">+ New Project</button>
+      <button class="btn btn-danger" id="logoutBtn">🚪 Logout</button>
+    </div>
+
+    <div id="projectsContainer" class="loading">
+      Loading projects...
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const authManager = new AuthManager(null);
+    const projectsContainer = document.getElementById('projectsContainer');
+    const userInfo = document.getElementById('userInfo');
+
+    async function loadProjects() {
+      try {
+        const isLoggedIn = await authManager.verify();
+        if (!isLoggedIn) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        userInfo.textContent = `Logged in as: ${authManager.username}`;
+
+        const projects = await authManager.getProjects();
+        
+        if (projects.length === 0) {
+          projectsContainer.innerHTML = `
+            <div class="empty-state">
+              <h2>No projects yet</h2>
+              <p>Create your first animation project in the studio!</p>
+            </div>
+          `;
+          return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'projects-grid';
+
+        projects.forEach(project => {
+          const card = document.createElement('div');
+          card.className = 'project-card';
+
+          const name = document.createElement('div');
+          name.className = 'project-name';
+          name.textContent = project.name;
+
+          const date = document.createElement('div');
+          date.className = 'project-date';
+          date.textContent = `Updated: ${new Date(project.updatedAt).toLocaleString()}`;
+
+          const actions = document.createElement('div');
+          actions.className = 'project-actions';
+
+          const loadBtn = document.createElement('button');
+          loadBtn.className = 'btn';
+          loadBtn.textContent = 'Open';
+          loadBtn.onclick = async () => {
+            try {
+              await authManager.loadProject(project.name);
+              window.location.href = 'index.html';
+            } catch (error) {
+              alert('Error loading project: ' + error.message);
+            }
+          };
+
+          const renameBtn = document.createElement('button');
+          renameBtn.className = 'btn btn-secondary';
+          renameBtn.textContent = 'Rename';
+          renameBtn.onclick = async () => {
+            const newName = prompt('Enter new project name:', project.name);
+            if (newName && newName.trim() && newName !== project.name) {
+              try {
+                await authManager.renameProject(project.name, newName.trim());
+                loadProjects();
+              } catch (error) {
+                alert('Error renaming project: ' + error.message);
+              }
+            }
+          };
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'btn btn-danger';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.onclick = async () => {
+            if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
+              try {
+                await authManager.deleteProject(project.name);
+                loadProjects();
+              } catch (error) {
+                alert('Error deleting project: ' + error.message);
+              }
+            }
+          };
+
+          actions.appendChild(loadBtn);
+          actions.appendChild(renameBtn);
+          actions.appendChild(deleteBtn);
+
+          card.appendChild(name);
+          card.appendChild(date);
+          card.appendChild(actions);
+
+          grid.appendChild(card);
+        });
+
+        projectsContainer.innerHTML = '';
+        projectsContainer.appendChild(grid);
+
+      } catch (error) {
+        projectsContainer.innerHTML = `
+          <div class="empty-state">
+            <h2>Error loading projects</h2>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById('newProjectBtn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await authManager.logout();
+    });
+
+    loadProjects();
+  </script>
+</body>
+</html>
