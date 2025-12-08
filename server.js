@@ -2,7 +2,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
-const { Database } = require('@replit/database');
+const Database = require('@replit/database');
 
 const app = express();
 const db = new Database();
