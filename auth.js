@@ -58,6 +58,7 @@ class AuthManager {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('username');
     localStorage.removeItem('current_project');
+    window.location.href = 'login.html';
   }
 
   async verify() {
