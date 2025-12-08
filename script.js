@@ -2619,7 +2619,7 @@ class AnimationStudio {
     <span class="info">FPS: ${this.fps} | Frames: ${this.frames.length}</span>
   </div>
   <canvas id="previewCanvas" width="${this.canvas.width}" height="${this.canvas.height}"></canvas>
-  <div class="info">Press Escape to close</div>
+  <div class="info">Press Escape to close(It will take you out of fullscreen)</div>
   <script>
     const canvas = document.getElementById('previewCanvas');
     const ctx = canvas.getContext('2d');
