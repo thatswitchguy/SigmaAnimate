@@ -328,6 +328,9 @@ class AnimationStudio {
     document.getElementById('undoBtn').addEventListener('click', () => this.undo());
     document.getElementById('redoBtn').addEventListener('click', () => this.redo());
 
+    // Preview button
+    document.getElementById('previewBtn').addEventListener('click', () => this.openPreview());
+
     
 
     // Clipboard controls
@@ -2599,6 +2602,348 @@ class AnimationStudio {
     } catch (error) {
       alert('Error loading animation: ' + error.message);
     }
+  }
+
+  openPreview() {
+    if (this.frames.length === 0) {
+      alert('No frames to preview!');
+      return;
+    }
+
+    // Create preview window
+    const previewWindow = window.open('', 'Animation Preview', 'width=900,height=700');
+    
+    if (!previewWindow) {
+      alert('Please allow popups to use the preview feature');
+      return;
+    }
+
+    // Build the preview HTML
+    const previewHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animation Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #fff;
+    }
+    .controls {
+      background: #2d2d2d;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    button {
+      padding: 8px 16px;
+      background: #3d3d3d;
+      color: #fff;
+      border: 2px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #4d4d4d;
+    }
+    button.playing {
+      background: #0078d4;
+      border-color: #0078d4;
+    }
+    #previewCanvas {
+      background: #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      max-width: 90vw;
+      max-height: 70vh;
+      image-rendering: crisp-edges;
+    }
+    .info {
+      margin-top: 15px;
+      color: #aaa;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="playBtn">▶ Play</button>
+    <button id="stopBtn">⏸ Stop</button>
+    <button id="restartBtn">⏮ Restart</button>
+    <span class="info">FPS: ${this.fps} | Frames: ${this.frames.length}</span>
+  </div>
+  <canvas id="previewCanvas" width="${this.canvas.width}" height="${this.canvas.height}"></canvas>
+  <div class="info">Press Escape to close</div>
+  <script>
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    
+    const fps = ${this.fps};
+    const backgroundColor = '${this.backgroundColor}';
+    const backgroundImageSrc = ${this.backgroundImage ? `'${this.backgroundImage.src}'` : 'null'};
+    let backgroundImage = null;
+    
+    if (backgroundImageSrc) {
+      backgroundImage = new Image();
+      backgroundImage.src = backgroundImageSrc;
+    }
+    
+    const frames = ${JSON.stringify(this.frames)};
+    let currentFrame = 0;
+    let isPlaying = false;
+    let animationInterval = null;
+    
+    // Pre-load all images
+    const imageLoadPromises = [];
+    for (const frame of frames) {
+      for (const obj of frame.objects) {
+        if (obj.type === 'image' && obj.src) {
+          const promise = new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              obj.imageElement = img;
+              resolve();
+            };
+            img.onerror = () => resolve();
+            img.src = obj.src;
+          });
+          imageLoadPromises.push(promise);
+        } else if (obj.type === 'group' && obj.children) {
+          for (const child of obj.children) {
+            if (child.type === 'image' && child.src) {
+              const promise = new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  child.imageElement = img;
+                  resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = child.src;
+              });
+              imageLoadPromises.push(promise);
+            }
+          }
+        }
+      }
+    }
+    
+    Promise.all(imageLoadPromises).then(() => {
+      renderFrame();
+      play();
+    });
+    
+    function renderFrame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (backgroundImage) {
+        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      const frame = frames[currentFrame];
+      for (const obj of frame.objects) {
+        renderObject(obj);
+      }
+    }
+    
+    function renderObject(obj, groupOffsetX = 0, groupOffsetY = 0) {
+      const rotation = obj.rotation || 0;
+      const centerX = obj.x + groupOffsetX + obj.width / 2;
+      const centerY = obj.y + groupOffsetY + obj.height / 2;
+      
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.translate(-centerX, -centerY);
+      
+      if (obj.type === 'circle') {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.lineWidth;
+        ctx.beginPath();
+        ctx.arc(obj.x + groupOffsetX + obj.width / 2, obj.y + groupOffsetY + obj.height / 2, obj.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (obj.type === 'square') {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.lineWidth || 2;
+        const x = obj.x + groupOffsetX;
+        const y = obj.y + groupOffsetY;
+        const radius = obj.borderRadius || 0;
+        if (radius > 0) {
+          const maxRadius = Math.min(radius, obj.width / 2, obj.height / 2);
+          ctx.beginPath();
+          ctx.moveTo(x + maxRadius, y);
+          ctx.lineTo(x + obj.width - maxRadius, y);
+          ctx.quadraticCurveTo(x + obj.width, y, x + obj.width, y + maxRadius);
+          ctx.lineTo(x + obj.width, y + obj.height - maxRadius);
+          ctx.quadraticCurveTo(x + obj.width, y + obj.height, x + obj.width - maxRadius, y + obj.height);
+          ctx.lineTo(x + maxRadius, y + obj.height);
+          ctx.quadraticCurveTo(x, y + obj.height, x, y + obj.height - maxRadius);
+          ctx.lineTo(x, y + maxRadius);
+          ctx.quadraticCurveTo(x, y, x + maxRadius, y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(x, y, obj.width, obj.height);
+          ctx.strokeRect(x, y, obj.width, obj.height);
+        }
+      } else if (obj.type === 'triangle') {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.lineWidth || 2;
+        const x = obj.x + groupOffsetX;
+        const y = obj.y + groupOffsetY;
+        ctx.beginPath();
+        ctx.moveTo(x + obj.width / 2, y);
+        ctx.lineTo(x, y + obj.height);
+        ctx.lineTo(x + obj.width, y + obj.height);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (obj.type === 'line') {
+        ctx.strokeStyle = obj.color;
+        ctx.lineWidth = obj.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(obj.startX + groupOffsetX, obj.startY + groupOffsetY);
+        ctx.lineTo(obj.endX + groupOffsetX, obj.endY + groupOffsetY);
+        ctx.stroke();
+      } else if (obj.type === 'path') {
+        ctx.strokeStyle = obj.color;
+        ctx.lineWidth = obj.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(obj.points[0].x + groupOffsetX, obj.points[0].y + groupOffsetY);
+        for (let i = 1; i < obj.points.length; i++) {
+          ctx.lineTo(obj.points[i].x + groupOffsetX, obj.points[i].y + groupOffsetY);
+        }
+        ctx.stroke();
+      } else if (obj.type === 'image' && obj.imageElement) {
+        ctx.drawImage(obj.imageElement, obj.x + groupOffsetX, obj.y + groupOffsetY, obj.width, obj.height);
+      } else if (obj.type === 'text') {
+        ctx.fillStyle = obj.color;
+        ctx.font = obj.fontSize + 'px ' + obj.fontFamily;
+        ctx.textBaseline = 'top';
+        const words = obj.text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        const maxWidth = obj.width - 10;
+        for (const word of words) {
+          const testLine = currentLine + (currentLine ? ' ' : '') + word;
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        const lineHeight = obj.fontSize * 1.2;
+        for (let i = 0; i < lines.length; i++) {
+          const lineX = obj.x + groupOffsetX + 5;
+          const lineY = obj.y + groupOffsetY + 5 + (i * lineHeight);
+          ctx.fillText(lines[i], lineX, lineY);
+          if (obj.underline) {
+            const textWidth = ctx.measureText(lines[i]).width;
+            const underlineY = lineY + obj.fontSize + 2;
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = Math.max(1, obj.fontSize / 16);
+            ctx.beginPath();
+            ctx.moveTo(lineX, underlineY);
+            ctx.lineTo(lineX + textWidth, underlineY);
+            ctx.stroke();
+          }
+        }
+      } else if (obj.type === 'group') {
+        const childOffsetX = obj.x + groupOffsetX;
+        const childOffsetY = obj.y + groupOffsetY;
+        for (const child of obj.children) {
+          renderObject(child, childOffsetX, childOffsetY);
+        }
+      }
+      
+      ctx.restore();
+    }
+    
+    function play() {
+      if (isPlaying) return;
+      isPlaying = true;
+      playBtn.classList.add('playing');
+      playBtn.textContent = '⏸ Pause';
+      
+      animationInterval = setInterval(() => {
+        currentFrame = (currentFrame + 1) % frames.length;
+        renderFrame();
+      }, 1000 / fps);
+    }
+    
+    function stop() {
+      isPlaying = false;
+      playBtn.classList.remove('playing');
+      playBtn.textContent = '▶ Play';
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+      }
+    }
+    
+    function restart() {
+      stop();
+      currentFrame = 0;
+      renderFrame();
+    }
+    
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        stop();
+      } else {
+        play();
+      }
+    });
+    
+    stopBtn.addEventListener('click', stop);
+    restartBtn.addEventListener('click', restart);
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>
+    `;
+    
+    previewWindow.document.write(previewHTML);
+    previewWindow.document.close();
   }
 
   async exportGIF() {
