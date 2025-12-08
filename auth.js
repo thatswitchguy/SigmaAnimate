@@ -35,7 +35,6 @@ class AuthManager {
 
   async register(username, password) {
     const data = await this.apiCall('/register', 'POST', { username, password });
-    alert('Account created successfully! Please login.');
     return data;
   }
 

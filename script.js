@@ -3129,10 +3129,10 @@ class AnimationStudio {
 
 const app = new AnimationStudio();
 
-// Automatically prompt for login on page load
+// Automatically redirect to login page if not logged in
 (async () => {
   const isLoggedIn = await app.authManager.verify();
   if (!isLoggedIn) {
-    app.authManager.showAuthDialog();
+    window.location.href = 'login.html';
   }
 })();
