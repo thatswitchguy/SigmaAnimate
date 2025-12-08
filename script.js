@@ -19,6 +19,8 @@ class AnimationStudio {
     this.backgroundColor = '#ffffff';
     this.backgroundImage = null;
 
+    this.authManager = new AuthManager(this);
+
     this.lastX = 0;
     this.lastY = 0;
 
@@ -276,8 +278,8 @@ class AnimationStudio {
     });
 
     // File controls
-    document.getElementById('cloudSaveBtn').addEventListener('click', () => this.saveToCloud());
-    document.getElementById('cloudLoadBtn').addEventListener('click', () => this.loadFromCloud());
+    document.getElementById('cloudSaveBtn').addEventListener('click', () => this.handleSave());
+    document.getElementById('cloudLoadBtn').addEventListener('click', () => this.handleLoad());
     document.getElementById('loadBtn').addEventListener('click', () => this.loadProject());
     document.getElementById('uploadAnimationBtn').addEventListener('click', () => {
       document.getElementById('animationUpload').click();
@@ -2356,96 +2358,22 @@ class AnimationStudio {
     playBtn.textContent = '▶ Play';
   }
 
-  saveToCloud() {
-    try {
-      const projectData = {
-        width: this.canvas.width,
-        height: this.canvas.height,
-        fps: this.fps,
-        frames: this.frames,
-        backgroundColor: this.backgroundColor,
-        backgroundImageSrc: this.backgroundImage ? this.backgroundImage.src : null
-      };
-
-      const dataStr = JSON.stringify(projectData);
-      localStorage.setItem('animation_project', dataStr);
-      alert('Project saved successfully!');
-    } catch (error) {
-      alert('Error saving: ' + error.message);
+  async handleSave() {
+    const isLoggedIn = await this.authManager.verify();
+    if (!isLoggedIn) {
+      this.authManager.showAuthDialog();
+      return;
     }
+    this.authManager.showProjectDialog();
   }
 
-  loadFromCloud() {
-    try {
-      const dataStr = localStorage.getItem('animation_project');
-      if (!dataStr) {
-        alert('No saved project found!');
-        return;
-      }
-
-      const projectData = JSON.parse(dataStr);
-
-      this.canvas.width = projectData.width;
-      this.canvas.height = projectData.height;
-      this.fps = projectData.fps;
-      document.getElementById('fpsInput').value = this.fps;
-
-      this.frames = projectData.frames;
-      this.currentFrameIndex = 0;
-      this.selectedObjects = [];
-
-      this.backgroundColor = projectData.backgroundColor || '#ffffff';
-      document.getElementById('backgroundColorPicker').value = this.backgroundColor;
-
-      // Pre-load all images in frames
-      const imageLoadPromises = [];
-      for (const frame of this.frames) {
-        for (const obj of frame.objects) {
-          if (obj.type === 'image' && obj.src && !obj.imageElement) {
-            const promise = new Promise((resolve) => {
-              const img = new Image();
-              img.onload = () => {
-                obj.imageElement = img;
-                resolve();
-              };
-              img.onerror = () => resolve();
-              img.src = obj.src;
-            });
-            imageLoadPromises.push(promise);
-          }
-        }
-      }
-
-      if (projectData.backgroundImageSrc) {
-        const img = new Image();
-        img.onload = () => {
-          this.backgroundImage = img;
-          Promise.all(imageLoadPromises).then(() => {
-            this.updateTimeline();
-            this.render();
-            // Reset history after loading
-            this.history = [];
-            this.historyIndex = -1;
-            this.saveCurrentFrame();
-          });
-        };
-        img.src = projectData.backgroundImageSrc;
-      } else {
-        this.backgroundImage = null;
-        Promise.all(imageLoadPromises).then(() => {
-          this.updateTimeline();
-          this.render();
-          // Reset history after loading
-          this.history = [];
-          this.historyIndex = -1;
-          this.saveCurrentFrame();
-        });
-      }
-
-      alert('Project loaded successfully!');
-    } catch (error) {
-      alert('Error loading: ' + error.message);
+  async handleLoad() {
+    const isLoggedIn = await this.authManager.verify();
+    if (!isLoggedIn) {
+      this.authManager.showAuthDialog();
+      return;
     }
+    this.authManager.showProjectDialog();
   }
 
   downloadProject() {
