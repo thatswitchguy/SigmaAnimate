@@ -3128,3 +3128,11 @@ class AnimationStudio {
 }
 
 const app = new AnimationStudio();
+
+// Automatically prompt for login on page load
+(async () => {
+  const isLoggedIn = await app.authManager.verify();
+  if (!isLoggedIn) {
+    app.authManager.showAuthDialog();
+  }
+})();
