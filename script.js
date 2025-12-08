@@ -1,3 +1,10 @@
+// Placeholder for a notification system
+const notify = {
+  success: (message) => console.log(`SUCCESS: ${message}`),
+  error: (message) => console.error(`ERROR: ${message}`),
+  info: (message) => console.log(`INFO: ${message}`),
+};
+
 class AnimationStudio {
   constructor() {
     this.canvas = document.getElementById('drawCanvas');
@@ -226,7 +233,7 @@ class AnimationStudio {
       this.brushSize = parseInt(e.target.value);
       document.getElementById('brushSizeLabel').textContent = this.brushSize + 'px';
     });
-    
+
     // Set initial brush size label
     document.getElementById('brushSizeLabel').textContent = this.brushSize + 'px';
 
@@ -333,7 +340,7 @@ class AnimationStudio {
     // Preview button
     document.getElementById('previewBtn').addEventListener('click', () => this.openPreview());
 
-    
+
 
     // Clipboard controls
     document.getElementById('copyBtn').addEventListener('click', () => this.copySelectedObjects());
@@ -369,20 +376,20 @@ class AnimationStudio {
 
   getMousePos(e) {
     const rect = this.canvas.getBoundingClientRect();
-    
+
     // Calculate position relative to canvas, accounting for scaling
     const scaleX = this.canvas.width / rect.width;
     const scaleY = this.canvas.height / rect.height;
-    
+
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
-    
+
     return { x, y };
   }
 
   handleDoubleClick(e) {
     const pos = this.getMousePos(e);
-    
+
     // Check if double-clicking on a text object
     const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
     if (clickedObject && clickedObject.type === 'text') {
@@ -392,18 +399,18 @@ class AnimationStudio {
 
   handleContextMenu(e) {
     e.preventDefault();
-    
+
     const pos = this.getMousePos(e);
     const clickedObject = this.getObjectAtPoint(pos.x, pos.y);
-    
+
     if (!clickedObject) return;
-    
+
     // Remove any existing context menu
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
       existingMenu.remove();
     }
-    
+
     // Create context menu
     const menu = document.createElement('div');
     menu.className = 'context-menu';
@@ -419,13 +426,13 @@ class AnimationStudio {
       z-index: 10000;
       min-width: 200px;
     `;
-    
+
     // Color option
     const colorOption = document.createElement('div');
     colorOption.className = 'context-menu-item';
     colorOption.style.cssText = 'padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;';
     colorOption.innerHTML = '<span>Change Color:</span>';
-    
+
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
     colorInput.value = clickedObject.color || '#000000';
@@ -436,48 +443,48 @@ class AnimationStudio {
       this.saveCurrentFrame();
       this.render();
     });
-    
+
     colorOption.appendChild(colorInput);
     menu.appendChild(colorOption);
-    
+
     // Border radius option (only for applicable shapes)
     if (['square', 'circle', 'triangle'].includes(clickedObject.type)) {
       const radiusOption = document.createElement('div');
       radiusOption.className = 'context-menu-item';
       radiusOption.style.cssText = 'padding: 8px 12px; cursor: pointer;';
       radiusOption.innerHTML = '<span style="display: block; margin-bottom: 5px;">Border Radius:</span>';
-      
+
       const radiusContainer = document.createElement('div');
       radiusContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
-      
+
       const radiusSlider = document.createElement('input');
       radiusSlider.type = 'range';
       radiusSlider.min = '0';
       radiusSlider.max = '50';
       radiusSlider.value = clickedObject.borderRadius || 0;
       radiusSlider.style.cssText = 'flex: 1; cursor: pointer;';
-      
+
       const radiusValue = document.createElement('span');
       radiusValue.textContent = (clickedObject.borderRadius || 0) + 'px';
       radiusValue.style.cssText = 'color: #aaa; font-size: 12px; min-width: 35px;';
-      
+
       radiusSlider.addEventListener('input', (evt) => {
         const value = parseInt(evt.target.value);
         clickedObject.borderRadius = value;
         radiusValue.textContent = value + 'px';
         this.render();
       });
-      
+
       radiusSlider.addEventListener('change', () => {
         this.saveCurrentFrame();
       });
-      
+
       radiusContainer.appendChild(radiusSlider);
       radiusContainer.appendChild(radiusValue);
       radiusOption.appendChild(radiusContainer);
       menu.appendChild(radiusOption);
     }
-    
+
     // Close menu when clicking outside
     const closeMenu = (evt) => {
       if (!menu.contains(evt.target)) {
@@ -485,11 +492,11 @@ class AnimationStudio {
         document.removeEventListener('mousedown', closeMenu);
       }
     };
-    
+
     setTimeout(() => {
       document.addEventListener('mousedown', closeMenu);
     }, 0);
-    
+
     document.body.appendChild(menu);
   }
 
@@ -497,56 +504,56 @@ class AnimationStudio {
     // Create modal for editing text
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;';
-    
+
     const dialog = document.createElement('div');
     dialog.style.cssText = 'background: #2d2d2d; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 400px;';
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Edit Text';
     title.style.cssText = 'margin-bottom: 15px; color: #fff;';
-    
+
     const textarea = document.createElement('textarea');
     textarea.value = textObj.text;
     textarea.style.cssText = 'width: 100%; min-height: 100px; padding: 8px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-family: inherit; resize: vertical;';
-    
+
     // Font size control
     const fontSizeContainer = document.createElement('div');
     fontSizeContainer.style.cssText = 'margin-bottom: 15px;';
-    
+
     const fontSizeLabel = document.createElement('label');
     fontSizeLabel.style.cssText = 'display: block; margin-bottom: 5px; color: #ccc;';
     fontSizeLabel.textContent = 'Font Size: ';
-    
+
     const fontSizeInput = document.createElement('input');
     fontSizeInput.type = 'range';
     fontSizeInput.min = '10';
     fontSizeInput.max = '72';
     fontSizeInput.value = textObj.fontSize || 24;
     fontSizeInput.style.cssText = 'width: 100%;';
-    
+
     const fontSizeValue = document.createElement('span');
     fontSizeValue.style.cssText = 'font-size: 12px; color: #aaa;';
     fontSizeValue.textContent = (textObj.fontSize || 24) + 'px';
-    
+
     fontSizeInput.addEventListener('input', (e) => {
       fontSizeValue.textContent = e.target.value + 'px';
     });
-    
+
     fontSizeLabel.appendChild(fontSizeInput);
     fontSizeContainer.appendChild(fontSizeLabel);
     fontSizeContainer.appendChild(fontSizeValue);
-    
+
     // Font family control
     const fontFamilyContainer = document.createElement('div');
     fontFamilyContainer.style.cssText = 'margin-bottom: 15px;';
-    
+
     const fontFamilyLabel = document.createElement('label');
     fontFamilyLabel.style.cssText = 'display: block; margin-bottom: 5px; color: #ccc;';
     fontFamilyLabel.textContent = 'Font Family:';
-    
+
     const fontFamilySelect = document.createElement('select');
     fontFamilySelect.style.cssText = 'width: 100%; padding: 6px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px;';
-    
+
     const fonts = ['Arial', 'Times New Roman', 'Courier New', 'Comic Sans MS', 'Impact', 'Verdana', 'Georgia', 'Trebuchet MS'];
     fonts.forEach(font => {
       const option = document.createElement('option');
@@ -557,44 +564,44 @@ class AnimationStudio {
       }
       fontFamilySelect.appendChild(option);
     });
-    
+
     fontFamilyContainer.appendChild(fontFamilyLabel);
     fontFamilyContainer.appendChild(fontFamilySelect);
-    
+
     // Underline control
     const underlineContainer = document.createElement('div');
     underlineContainer.style.cssText = 'margin-bottom: 15px;';
-    
+
     const underlineLabel = document.createElement('label');
     underlineLabel.style.cssText = 'display: flex; align-items: center; gap: 8px; color: #ccc; cursor: pointer;';
-    
+
     const underlineCheckbox = document.createElement('input');
     underlineCheckbox.type = 'checkbox';
     underlineCheckbox.checked = textObj.underline || false;
     underlineCheckbox.style.cssText = 'cursor: pointer;';
-    
+
     const underlineText = document.createElement('span');
     underlineText.textContent = 'Underline';
-    
+
     underlineLabel.appendChild(underlineCheckbox);
     underlineLabel.appendChild(underlineText);
     underlineContainer.appendChild(underlineLabel);
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = 'padding: 8px 16px; background: #3d3d3d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
-    
+
     const okBtn = document.createElement('button');
     okBtn.textContent = 'OK';
     okBtn.style.cssText = 'padding: 8px 16px; background: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
-    
+
     const closeModal = () => {
       document.body.removeChild(modal);
     };
-    
+
     const applyEdit = () => {
       const newText = textarea.value.trim();
       if (newText !== '') {
@@ -608,7 +615,7 @@ class AnimationStudio {
       }
       closeModal();
     };
-    
+
     cancelBtn.addEventListener('click', closeModal);
     okBtn.addEventListener('click', applyEdit);
     textarea.addEventListener('keydown', (e) => {
@@ -616,7 +623,7 @@ class AnimationStudio {
         closeModal();
       }
     });
-    
+
     buttonContainer.appendChild(cancelBtn);
     buttonContainer.appendChild(okBtn);
     dialog.appendChild(title);
@@ -627,7 +634,7 @@ class AnimationStudio {
     dialog.appendChild(buttonContainer);
     modal.appendChild(dialog);
     document.body.appendChild(modal);
-    
+
     textarea.focus();
     textarea.select();
   }
@@ -768,13 +775,13 @@ class AnimationStudio {
             obj.startX += dx;
             obj.startY += dy;
           }
-          
+
           // Recalculate bounding box for line
           const minX = Math.min(obj.startX, obj.endX);
           const maxX = Math.max(obj.startX, obj.endX);
           const minY = Math.min(obj.startY, obj.endY);
           const maxY = Math.max(obj.startY, obj.endY);
-          
+
           obj.x = minX;
           obj.y = minY;
           obj.width = maxX - minX;
@@ -820,7 +827,7 @@ class AnimationStudio {
             else if (this.resizeHandle === 'e') this.resizeHandle = 'w';
             else if (this.resizeHandle === 'w') this.resizeHandle = 'e';
           }
-          
+
           if (obj.height < 0) {
             obj.y += obj.height;
             obj.height = Math.abs(obj.height);
@@ -846,7 +853,7 @@ class AnimationStudio {
         for (const obj of this.selectedObjects) {
           obj.x += dx;
           obj.y += dy;
-          
+
           // Update line endpoints if it's a line object
           if (obj.type === 'line') {
             obj.startX += dx;
@@ -903,22 +910,22 @@ class AnimationStudio {
 
     if (this.tool === 'text' && this.isDrawing) {
       this.isDrawing = false;
-      
+
       // Only create text box if user actually dragged
       const width = Math.abs(this.tempTextBox.width);
       const height = Math.abs(this.tempTextBox.height);
-      
+
       if (width < 30 || height < 30) {
         // If box is too small, don't create it - user probably just clicked
         this.tempTextBox = null;
         this.render();
         return;
       }
-      
+
       // Normalize coordinates if dragged backwards
       const x = this.tempTextBox.width < 0 ? this.tempTextBox.x + this.tempTextBox.width : this.tempTextBox.x;
       const y = this.tempTextBox.height < 0 ? this.tempTextBox.y + this.tempTextBox.height : this.tempTextBox.y;
-      
+
       const newTextObj = {
         type: 'text',
         x: x,
@@ -932,17 +939,17 @@ class AnimationStudio {
         height: height,
         name: 'Text: ' + (this.textContent || 'Double-click to edit').substring(0, 20)
       };
-      
+
       this.addObject(newTextObj);
       this.tempTextBox = null;
       this.saveCurrentFrame();
       this.render();
-      
+
       // Automatically open edit dialog for new text box
       setTimeout(() => {
         this.editTextObject(newTextObj);
       }, 100);
-      
+
       return;
     }
 
@@ -1200,7 +1207,7 @@ class AnimationStudio {
         };
 
         this.addObject(imageObj);
-        
+
         // Automatically select the image so user can resize/rotate it
         this.selectedObjects = [imageObj];
         this.setTool('mouse');
@@ -1226,7 +1233,7 @@ class AnimationStudio {
         this.updateTimeline();
       };
       img.onerror = () => {
-        alert('Error loading background image');
+        notify.error('Error loading background image');
       };
       img.src = event.target.result;
     };
@@ -1335,7 +1342,7 @@ class AnimationStudio {
     const rotation = obj.rotation || 0;
     const centerX = obj.x + obj.width / 2;
     const centerY = obj.y + obj.height / 2;
-    
+
     // Calculate rotated handle positions
     const rotatePoint = (px, py, cx, cy, angle) => {
       const rad = angle * Math.PI / 180;
@@ -1353,17 +1360,17 @@ class AnimationStudio {
     if (obj.type === 'line') {
       const startHandle = rotatePoint(obj.startX, obj.startY, centerX, centerY, rotation);
       const endHandle = rotatePoint(obj.endX, obj.endY, centerX, centerY, rotation);
-      
+
       if (x >= startHandle.x - handleSize && x <= startHandle.x + handleSize &&
           y >= startHandle.y - handleSize && y <= startHandle.y + handleSize) {
         return 'nw'; // Start point
       }
-      
+
       if (x >= endHandle.x - handleSize && x <= endHandle.x + handleSize &&
           y >= endHandle.y - handleSize && y <= endHandle.y + handleSize) {
         return 'se'; // End point
       }
-      
+
       return null;
     }
 
@@ -1374,7 +1381,7 @@ class AnimationStudio {
       sw: { x: obj.x, y: obj.y + obj.height },
       se: { x: obj.x + obj.width, y: obj.y + obj.height }
     };
-    
+
     for (const [name, pos] of Object.entries(corners)) {
       const rotated = rotatePoint(pos.x, pos.y, centerX, centerY, rotation);
       if (x >= rotated.x - handleSize && x <= rotated.x + handleSize &&
@@ -1390,7 +1397,7 @@ class AnimationStudio {
       e: { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
       w: { x: obj.x, y: obj.y + obj.height / 2 }
     };
-    
+
     for (const [name, pos] of Object.entries(edges)) {
       const rotated = rotatePoint(pos.x, pos.y, centerX, centerY, rotation);
       if (x >= rotated.x - handleSize && x <= rotated.x + handleSize &&
@@ -1410,7 +1417,7 @@ class AnimationStudio {
     const rotation = obj.rotation || 0;
     const centerX = obj.x + obj.width / 2;
     const centerY = obj.y + obj.height / 2;
-    
+
     // Calculate rotated handle position
     const rotatePoint = (px, py, cx, cy, angle) => {
       const rad = angle * Math.PI / 180;
@@ -1423,7 +1430,7 @@ class AnimationStudio {
         y: cy + dx * sin + dy * cos
       };
     };
-    
+
     const rotateHandleOffset = rotatePoint(
       obj.x + obj.width / 2,
       obj.y - 20,
@@ -1442,7 +1449,7 @@ class AnimationStudio {
 
   groupSelectedObjects() {
     if (this.selectedObjects.length < 2) {
-      alert('Select at least 2 objects to group');
+      notify.info('Select at least 2 objects to group');
       return;
     }
 
@@ -1485,7 +1492,7 @@ class AnimationStudio {
 
   ungroupSelectedObjects() {
     if (this.selectedObjects.length !== 1 || this.selectedObjects[0].type !== 'group') {
-      alert('Select a single group to ungroup');
+      notify.info('Select a single group to ungroup');
       return;
     }
 
@@ -1499,7 +1506,7 @@ class AnimationStudio {
         const restored = JSON.parse(JSON.stringify(child));
         restored.x = child.x + group.x;
         restored.y = child.y + group.y;
-        
+
         // Reload image if it's an image object
         if (restored.type === 'image' && restored.src) {
           const img = new Image();
@@ -1509,7 +1516,7 @@ class AnimationStudio {
           };
           img.src = restored.src;
         }
-        
+
         return restored;
       });
 
@@ -1547,16 +1554,16 @@ class AnimationStudio {
 
   copySelectedObjects() {
     if (this.selectedObjects.length === 0) {
-      alert('No objects selected to copy');
+      notify.info('No objects selected to copy');
       return;
     }
     this.clipboard = JSON.parse(JSON.stringify(this.selectedObjects));
-    alert(`Copied ${this.clipboard.length} object(s)`);
+    notify.info(`Copied ${this.clipboard.length} object(s)`);
   }
 
   pasteObjects() {
     if (this.clipboard.length === 0) {
-      alert('Nothing to paste');
+      notify.info('Nothing to paste');
       return;
     }
 
@@ -1590,7 +1597,7 @@ class AnimationStudio {
 
   duplicateSelectedObjects() {
     if (this.selectedObjects.length === 0) {
-      alert('No objects selected to duplicate');
+      notify.info('No objects selected to duplicate');
       return;
     }
 
@@ -1600,43 +1607,43 @@ class AnimationStudio {
 
   renameSelectedObject() {
     if (this.selectedObjects.length !== 1) {
-      alert('Please select exactly one object to rename');
+      notify.info('Please select exactly one object to rename');
       return;
     }
 
     const obj = this.selectedObjects[0];
-    
+
     // Create modal
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000;';
-    
+
     const dialog = document.createElement('div');
     dialog.style.cssText = 'background: #2d2d2d; padding: 20px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 300px;';
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Rename Object';
     title.style.cssText = 'margin-bottom: 15px; color: #fff;';
-    
+
     const input = document.createElement('input');
     input.type = 'text';
     input.value = obj.name || '';
     input.style.cssText = 'width: 100%; padding: 8px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px;';
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = 'padding: 8px 16px; background: #3d3d3d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
-    
+
     const okBtn = document.createElement('button');
     okBtn.textContent = 'OK';
     okBtn.style.cssText = 'padding: 8px 16px; background: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
-    
+
     const closeModal = () => {
       document.body.removeChild(modal);
     };
-    
+
     const applyRename = () => {
       const newName = input.value.trim();
       if (newName !== '') {
@@ -1645,7 +1652,7 @@ class AnimationStudio {
       }
       closeModal();
     };
-    
+
     cancelBtn.addEventListener('click', closeModal);
     okBtn.addEventListener('click', applyRename);
     input.addEventListener('keydown', (e) => {
@@ -1655,7 +1662,7 @@ class AnimationStudio {
         closeModal();
       }
     });
-    
+
     buttonContainer.appendChild(cancelBtn);
     buttonContainer.appendChild(okBtn);
     dialog.appendChild(title);
@@ -1663,7 +1670,7 @@ class AnimationStudio {
     dialog.appendChild(buttonContainer);
     modal.appendChild(dialog);
     document.body.appendChild(modal);
-    
+
     input.focus();
     input.select();
   }
@@ -1682,7 +1689,7 @@ class AnimationStudio {
       backgroundColor: this.backgroundColor,
       backgroundImage: this.backgroundImage ? this.backgroundImage.src : null
     });
-    
+
     // Move index to the new state
     this.historyIndex = this.history.length - 1;
 
@@ -1714,7 +1721,7 @@ class AnimationStudio {
     this.currentFrameIndex = state.currentFrameIndex;
     this.selectedObjects = JSON.parse(JSON.stringify(state.selectedObjects));
     this.backgroundColor = state.backgroundColor;
-    
+
     // Restore background image
     if (state.backgroundImage) {
       const img = new Image();
@@ -1726,7 +1733,7 @@ class AnimationStudio {
     } else {
       this.backgroundImage = null;
     }
-    
+
     // Reload all images in frames and groups
     const reloadImages = (obj) => {
       if (obj.type === 'image' && obj.src) {
@@ -1742,13 +1749,13 @@ class AnimationStudio {
         }
       }
     };
-    
+
     for (const frame of this.frames) {
       for (const obj of frame.objects) {
         reloadImages(obj);
       }
     }
-    
+
     document.getElementById('backgroundColorPicker').value = this.backgroundColor;
     this.render();
     this.updateTimeline();
@@ -1795,7 +1802,7 @@ class AnimationStudio {
         this.tempTextBox.height
       );
       this.ctx.setLineDash([]);
-      
+
       // Show preview text
       this.ctx.fillStyle = this.color;
       this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
@@ -1845,7 +1852,7 @@ class AnimationStudio {
         const obj = this.selectedObjects[0];
         const handleSize = 8;
         this.ctx.fillStyle = '#0078d4';
-        
+
         const rotation = obj.rotation || 0;
         const centerX = obj.x + obj.width / 2;
         const centerY = obj.y + obj.height / 2;
@@ -1866,7 +1873,7 @@ class AnimationStudio {
         if (obj.type === 'line') {
           const startHandle = rotatePoint(obj.startX, obj.startY, centerX, centerY, rotation);
           const endHandle = rotatePoint(obj.endX, obj.endY, centerX, centerY, rotation);
-          
+
           this.ctx.fillRect(startHandle.x - handleSize / 2, startHandle.y - handleSize / 2, handleSize, handleSize);
           this.ctx.fillRect(endHandle.x - handleSize / 2, endHandle.y - handleSize / 2, handleSize, handleSize);
         } else {
@@ -1878,7 +1885,7 @@ class AnimationStudio {
             { x: obj.x + obj.width, y: obj.y + obj.height }
           ];
 
-          const rotatedCorners = corners.map(corner => 
+          const rotatedCorners = corners.map(corner =>
             rotatePoint(corner.x, corner.y, centerX, centerY, rotation)
           );
 
@@ -1894,7 +1901,7 @@ class AnimationStudio {
             { x: obj.x, y: obj.y + obj.height / 2 }
           ];
 
-          const rotatedEdges = edges.map(edge => 
+          const rotatedEdges = edges.map(edge =>
             rotatePoint(edge.x, edge.y, centerX, centerY, rotation)
           );
 
@@ -1911,7 +1918,7 @@ class AnimationStudio {
           centerY,
           rotation
         );
-        
+
         this.ctx.beginPath();
         this.ctx.arc(rotateHandleOffset.x, rotateHandleOffset.y, handleSize / 2, 0, Math.PI * 2);
         this.ctx.fill();
@@ -1921,7 +1928,7 @@ class AnimationStudio {
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         this.ctx.moveTo(rotateHandleOffset.x, rotateHandleOffset.y);
-        
+
         const topCenterRotated = rotatePoint(
           obj.x + obj.width / 2,
           obj.y,
@@ -1929,7 +1936,7 @@ class AnimationStudio {
           centerY,
           rotation
         );
-        
+
         this.ctx.lineTo(topCenterRotated.x, topCenterRotated.y);
         this.ctx.stroke();
       }
@@ -1966,15 +1973,15 @@ class AnimationStudio {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
       const useObjColor = currentStroke !== '#888888' && !currentFill.includes('rgba');
-      
+
       ctx.strokeStyle = useObjColor ? obj.color : currentStroke;
       ctx.fillStyle = useObjColor ? obj.color : currentFill;
       ctx.lineWidth = obj.lineWidth || 2;
-      
+
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
       const radius = obj.borderRadius || 0;
-      
+
       if (radius > 0) {
         // Draw rounded rectangle
         const maxRadius = Math.min(radius, obj.width / 2, obj.height / 2);
@@ -1999,15 +2006,15 @@ class AnimationStudio {
       const currentStroke = ctx.strokeStyle;
       const currentFill = ctx.fillStyle;
       const useObjColor = currentStroke !== '#888888' && !currentFill.includes('rgba');
-      
+
       ctx.strokeStyle = useObjColor ? obj.color : currentStroke;
       ctx.fillStyle = useObjColor ? obj.color : currentFill;
       ctx.lineWidth = obj.lineWidth || 2;
-      
+
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
       const radius = obj.borderRadius || 0;
-      
+
       ctx.beginPath();
       if (radius > 0) {
         // Triangle with rounded corners (simplified)
@@ -2018,7 +2025,7 @@ class AnimationStudio {
         const leftY = y + obj.height;
         const rightX = x + obj.width;
         const rightY = y + obj.height;
-        
+
         ctx.moveTo(topX, topY + maxRadius);
         ctx.lineTo(leftX + maxRadius, leftY - maxRadius);
         ctx.quadraticCurveTo(leftX, leftY, leftX + maxRadius, leftY);
@@ -2073,17 +2080,17 @@ class AnimationStudio {
       ctx.fillStyle = currentFill.includes('rgba') ? currentFill : obj.color;
       ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
       ctx.textBaseline = 'top';
-      
+
       // Word wrap text within the box
       const words = obj.text.split(' ');
       const lines = [];
       let currentLine = '';
       const maxWidth = obj.width - 10; // 5px padding on each side
-      
+
       for (const word of words) {
         const testLine = currentLine + (currentLine ? ' ' : '') + word;
         const metrics = ctx.measureText(testLine);
-        
+
         if (metrics.width > maxWidth && currentLine) {
           lines.push(currentLine);
           currentLine = word;
@@ -2094,14 +2101,14 @@ class AnimationStudio {
       if (currentLine) {
         lines.push(currentLine);
       }
-      
+
       // Draw each line
       const lineHeight = obj.fontSize * 1.2;
       for (let i = 0; i < lines.length; i++) {
         const lineX = obj.x + groupOffsetX + 5;
         const lineY = obj.y + groupOffsetY + 5 + (i * lineHeight);
         ctx.fillText(lines[i], lineX, lineY);
-        
+
         // Draw underline if enabled
         if (obj.underline) {
           const textWidth = ctx.measureText(lines[i]).width;
@@ -2114,7 +2121,7 @@ class AnimationStudio {
           ctx.stroke();
         }
       }
-      
+
       // Draw box outline for reference (optional, can be removed)
       ctx.strokeStyle = 'rgba(0, 120, 212, 0.3)';
       ctx.lineWidth = 1;
@@ -2125,7 +2132,7 @@ class AnimationStudio {
       // Render children with group position as offset
       const childOffsetX = obj.x + groupOffsetX;
       const childOffsetY = obj.y + groupOffsetY;
-      
+
       for (const child of obj.children) {
         this.renderObject(child, ctx, childOffsetX, childOffsetY);
       }
@@ -2177,7 +2184,7 @@ class AnimationStudio {
       thumbContainer.className = 'frame-thumb';
       thumbContainer.draggable = true;
       thumbContainer.dataset.index = index;
-      
+
       if (index === this.currentFrameIndex) {
         thumbContainer.classList.add('active');
       }
@@ -2239,10 +2246,10 @@ class AnimationStudio {
       thumbContainer.addEventListener('drop', (e) => {
         e.preventDefault();
         thumbContainer.classList.remove('drag-over');
-        
+
         const fromIndex = parseInt(e.dataTransfer.getData('text/html'));
         const toIndex = parseInt(thumbContainer.dataset.index);
-        
+
         if (fromIndex !== toIndex) {
           this.reorderFrames(fromIndex, toIndex);
         }
@@ -2257,13 +2264,13 @@ class AnimationStudio {
 
   updateTimelineScrubber() {
     const timelineContainer = document.getElementById('timeline').parentElement;
-    
+
     // Remove existing scrubber and indicator
     const existingScrubber = timelineContainer.querySelector('.timeline-scrubber');
     const existingIndicator = timelineContainer.querySelector('.video-length-indicator');
     if (existingScrubber) existingScrubber.remove();
     if (existingIndicator) existingIndicator.remove();
-    
+
     // Calculate video info
     const videoLength = this.frames.length / this.fps;
     const minutes = Math.floor(videoLength / 60);
@@ -2271,51 +2278,51 @@ class AnimationStudio {
     const currentTime = this.currentFrameIndex / this.fps;
     const currentMinutes = Math.floor(currentTime / 60);
     const currentSeconds = (currentTime % 60).toFixed(2);
-    
+
     // Create timeline scrubber
     const scrubber = document.createElement('div');
     scrubber.className = 'timeline-scrubber';
-    
+
     const progress = document.createElement('div');
     progress.className = 'timeline-scrubber-progress';
     const progressPercent = this.frames.length > 0 ? ((this.currentFrameIndex + 1) / this.frames.length) * 100 : 0;
     progress.style.width = progressPercent + '%';
-    
+
     const handle = document.createElement('div');
     handle.className = 'timeline-scrubber-handle';
     handle.style.left = progressPercent + '%';
-    
+
     const timeDisplay = document.createElement('div');
     timeDisplay.className = 'timeline-scrubber-time';
     timeDisplay.textContent = `${currentMinutes}:${currentSeconds.padStart(5, '0')} / ${minutes}:${seconds.padStart(5, '0')}`;
-    
+
     scrubber.appendChild(progress);
     scrubber.appendChild(handle);
     scrubber.appendChild(timeDisplay);
-    
+
     // Add scrubber interaction - click only
     const updateScrubberPosition = (e) => {
       const rect = scrubber.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const percent = Math.max(0, Math.min(1, x / rect.width));
       const frameIndex = Math.min(Math.floor(percent * this.frames.length), this.frames.length - 1);
-      
+
       if (frameIndex >= 0 && frameIndex < this.frames.length) {
         this.selectFrame(frameIndex);
       }
     };
-    
+
     scrubber.addEventListener('click', (e) => {
       updateScrubberPosition(e);
     });
-    
+
     timelineContainer.appendChild(scrubber);
   }
 
   reorderFrames(fromIndex, toIndex) {
     const movedFrame = this.frames.splice(fromIndex, 1)[0];
     this.frames.splice(toIndex, 0, movedFrame);
-    
+
     // Update current frame index if needed
     if (this.currentFrameIndex === fromIndex) {
       this.currentFrameIndex = toIndex;
@@ -2324,7 +2331,7 @@ class AnimationStudio {
     } else if (fromIndex > this.currentFrameIndex && toIndex <= this.currentFrameIndex) {
       this.currentFrameIndex++;
     }
-    
+
     this.updateTimeline();
     this.render();
   }
@@ -2332,7 +2339,7 @@ class AnimationStudio {
   play() {
     if (this.isPlaying) return;
     this.isPlaying = true;
-    
+
     // Update button to show pause
     const playBtn = document.getElementById('playBtn');
     playBtn.textContent = '⏸ Pause';
@@ -2352,7 +2359,7 @@ class AnimationStudio {
       clearInterval(this.animationInterval);
       this.animationInterval = null;
     }
-    
+
     // Update button to show play
     const playBtn = document.getElementById('playBtn');
     playBtn.textContent = '▶ Play';
@@ -2411,6 +2418,7 @@ class AnimationStudio {
       reader.onload = (event) => {
         try {
           const projectData = JSON.parse(event.target.result);
+          const projectName = file.name.replace('.json', '');
 
           this.canvas.width = projectData.width;
           this.canvas.height = projectData.height;
@@ -2428,21 +2436,103 @@ class AnimationStudio {
             const img = new Image();
             img.onload = () => {
               this.backgroundImage = img;
+              // Pre-load all images in the frames
+              const imageLoadPromises = [];
+              for (const frame of this.frames) {
+                for (const obj of frame.objects) {
+                  if (obj.type === 'image' && obj.src) {
+                    const promise = new Promise((resolve) => {
+                      const imgElement = new Image();
+                      imgElement.onload = () => {
+                        obj.imageElement = imgElement;
+                        resolve();
+                      };
+                      imgElement.onerror = () => resolve(); // Resolve even if image fails to load
+                      imgElement.src = obj.src;
+                    });
+                    imageLoadPromises.push(promise);
+                  } else if (obj.type === 'group' && obj.children) {
+                    for (const child of obj.children) {
+                      if (child.type === 'image' && child.src) {
+                        const promise = new Promise((resolve) => {
+                          const imgElement = new Image();
+                          imgElement.onload = () => {
+                            child.imageElement = imgElement;
+                            resolve();
+                          };
+                          imgElement.onerror = () => resolve();
+                          imgElement.src = child.src;
+                        });
+                        imageLoadPromises.push(promise);
+                      }
+                    }
+                  }
+                }
+              }
+
+              Promise.all(imageLoadPromises).then(() => {
+                this.saveCurrentFrame();
+                notify.success(`Loaded project "${projectName}"`);
+              });
+            };
+            img.onerror = () => {
+              notify.error('Error loading background image for the project.');
+              this.backgroundImage = null; // Ensure background is cleared if it fails
               this.render();
+              this.updateTimeline();
+              this.history = [];
+              this.historyIndex = -1;
+              this.saveCurrentFrame();
+              notify.success(`Loaded project "${projectName}" (background image failed to load)`);
             };
             img.src = projectData.backgroundImageSrc;
           } else {
             this.backgroundImage = null;
-          }
+            // Pre-load all images in the frames even if no background
+            const imageLoadPromises = [];
+            for (const frame of this.frames) {
+              for (const obj of frame.objects) {
+                if (obj.type === 'image' && obj.src) {
+                  const promise = new Promise((resolve) => {
+                    const imgElement = new Image();
+                    imgElement.onload = () => {
+                      obj.imageElement = imgElement;
+                      resolve();
+                    };
+                    imgElement.onerror = () => resolve();
+                    imgElement.src = obj.src;
+                  });
+                  imageLoadPromises.push(promise);
+                } else if (obj.type === 'group' && obj.children) {
+                  for (const child of obj.children) {
+                    if (child.type === 'image' && child.src) {
+                      const promise = new Promise((resolve) => {
+                        const imgElement = new Image();
+                        imgElement.onload = () => {
+                          child.imageElement = imgElement;
+                          resolve();
+                        };
+                        imgElement.onerror = () => resolve();
+                        imgElement.src = child.src;
+                      });
+                      imageLoadPromises.push(promise);
+                    }
+                  }
+                }
+              }
+            }
 
-          this.updateTimeline();
-          this.render();
-          // Reset history after loading
-          this.history = [];
-          this.historyIndex = -1;
-          this.saveCurrentFrame();
+            Promise.all(imageLoadPromises).then(() => {
+              this.updateTimeline();
+              this.render();
+              this.history = [];
+              this.historyIndex = -1;
+              this.saveCurrentFrame();
+              notify.success(`Loaded project "${projectName}"`);
+            });
+          }
         } catch (error) {
-          alert('Error loading project: ' + error.message);
+          notify.error('Error loading project: ' + error.message);
         }
       };
 
@@ -2457,7 +2547,7 @@ class AnimationStudio {
     if (!file) return;
 
     if (!file.type.includes('webm')) {
-      alert('Please upload a WebM video file');
+      notify.error('Please upload a WebM video file');
       return;
     }
 
@@ -2526,23 +2616,23 @@ class AnimationStudio {
       this.updateTimeline();
       this.render();
 
-      alert(`Animation loaded successfully! ${frameCount} frames extracted.`);
+      notify.success(`Animation loaded successfully! ${frameCount} frames extracted.`);
     } catch (error) {
-      alert('Error loading animation: ' + error.message);
+      notify.error('Error loading animation: ' + error.message);
     }
   }
 
   openPreview() {
     if (this.frames.length === 0) {
-      alert('No frames to preview!');
+      notify.info('No frames to preview!');
       return;
     }
 
     // Create preview window
     const previewWindow = window.open('', 'Animation Preview', 'width=900,height=700');
-    
+
     if (!previewWindow) {
-      alert('Please allow popups to use the preview feature');
+      notify.error('Please allow popups to use the preview feature');
       return;
     }
 
@@ -2626,22 +2716,22 @@ class AnimationStudio {
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const restartBtn = document.getElementById('restartBtn');
-    
+
     const fps = ${this.fps};
     const backgroundColor = '${this.backgroundColor}';
     const backgroundImageSrc = ${this.backgroundImage ? `'${this.backgroundImage.src}'` : 'null'};
     let backgroundImage = null;
-    
+
     if (backgroundImageSrc) {
       backgroundImage = new Image();
       backgroundImage.src = backgroundImageSrc;
     }
-    
+
     const frames = ${JSON.stringify(this.frames)};
     let currentFrame = 0;
     let isPlaying = false;
     let animationInterval = null;
-    
+
     // Pre-load all images
     const imageLoadPromises = [];
     for (const frame of frames) {
@@ -2675,38 +2765,38 @@ class AnimationStudio {
         }
       }
     }
-    
+
     Promise.all(imageLoadPromises).then(() => {
       renderFrame();
       play();
     });
-    
+
     function renderFrame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       if (backgroundImage) {
         ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
       } else {
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
-      
+
       const frame = frames[currentFrame];
       for (const obj of frame.objects) {
         renderObject(obj);
       }
     }
-    
+
     function renderObject(obj, groupOffsetX = 0, groupOffsetY = 0) {
       const rotation = obj.rotation || 0;
       const centerX = obj.x + groupOffsetX + obj.width / 2;
       const centerY = obj.y + groupOffsetY + obj.height / 2;
-      
+
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(rotation * Math.PI / 180);
       ctx.translate(-centerX, -centerY);
-      
+
       if (obj.type === 'circle') {
         ctx.strokeStyle = obj.color;
         ctx.fillStyle = obj.color;
@@ -2817,22 +2907,22 @@ class AnimationStudio {
           renderObject(child, childOffsetX, childOffsetY);
         }
       }
-      
+
       ctx.restore();
     }
-    
+
     function play() {
       if (isPlaying) return;
       isPlaying = true;
       playBtn.classList.add('playing');
       playBtn.textContent = '⏸ Pause';
-      
+
       animationInterval = setInterval(() => {
         currentFrame = (currentFrame + 1) % frames.length;
         renderFrame();
       }, 1000 / fps);
     }
-    
+
     function stop() {
       isPlaying = false;
       playBtn.classList.remove('playing');
@@ -2842,13 +2932,13 @@ class AnimationStudio {
         animationInterval = null;
       }
     }
-    
+
     function restart() {
       stop();
       currentFrame = 0;
       renderFrame();
     }
-    
+
     playBtn.addEventListener('click', () => {
       if (isPlaying) {
         stop();
@@ -2856,10 +2946,10 @@ class AnimationStudio {
         play();
       }
     });
-    
+
     stopBtn.addEventListener('click', stop);
     restartBtn.addEventListener('click', restart);
-    
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         window.close();
@@ -2869,14 +2959,14 @@ class AnimationStudio {
 </body>
 </html>
     `;
-    
+
     previewWindow.document.write(previewHTML);
     previewWindow.document.close();
   }
 
   async exportGIF() {
     if (this.frames.length === 0) {
-      alert('No frames to export!');
+      notify.info('No frames to export!');
       return;
     }
 
@@ -2986,7 +3076,7 @@ class AnimationStudio {
       }, 1000 / this.fps);
 
     } catch (error) {
-      alert('Error exporting video: ' + error.message + '\n\nNote: Your browser may not support video export. Try Chrome or Edge.');
+      notify.error('Error exporting video: ' + error.message + '\n\nNote: Your browser may not support video export. Try Chrome or Edge.');
     }
   }
 
@@ -3012,11 +3102,11 @@ class AnimationStudio {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth || 2;
-      
+
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
       const radius = obj.borderRadius || 0;
-      
+
       if (radius > 0) {
         const maxRadius = Math.min(radius, obj.width / 2, obj.height / 2);
         this.ctx.beginPath();
@@ -3040,11 +3130,11 @@ class AnimationStudio {
       this.ctx.strokeStyle = obj.color;
       this.ctx.fillStyle = obj.color;
       this.ctx.lineWidth = obj.lineWidth || 2;
-      
+
       const x = obj.x + groupOffsetX;
       const y = obj.y + groupOffsetY;
       const radius = obj.borderRadius || 0;
-      
+
       this.ctx.beginPath();
       if (radius > 0) {
         const maxRadius = Math.min(radius, obj.width / 4, obj.height / 4);
@@ -3054,7 +3144,7 @@ class AnimationStudio {
         const leftY = y + obj.height;
         const rightX = x + obj.width;
         const rightY = y + obj.height;
-        
+
         this.ctx.moveTo(topX, topY + maxRadius);
         this.ctx.lineTo(leftX + maxRadius, leftY - maxRadius);
         this.ctx.quadraticCurveTo(leftX, leftY, leftX + maxRadius, leftY);
@@ -3101,7 +3191,7 @@ class AnimationStudio {
       const textX = obj.x + groupOffsetX;
       const textY = obj.y + groupOffsetY;
       this.ctx.fillText(obj.text, textX, textY);
-      
+
       // Draw underline if enabled
       if (obj.underline) {
         const textWidth = this.ctx.measureText(obj.text).width;
@@ -3117,7 +3207,7 @@ class AnimationStudio {
       // Render children with group position as offset
       const childOffsetX = obj.x + groupOffsetX;
       const childOffsetY = obj.y + groupOffsetY;
-      
+
       for (const child of obj.children) {
         this.renderObjectForExport(child, childOffsetX, childOffsetY);
       }
