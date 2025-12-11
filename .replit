@@ -1,5 +1,5 @@
 entrypoint = "index.html"
-modules = ["python-3.11", "web"]
+modules = ["python-3.11", "web", "nodejs-20"]
 
 [nix]
 channel = "stable-24_11"
@@ -10,7 +10,7 @@ publicDir = "/"
 deploymentTarget = "static"
 
 [workflows]
-runButton = "Run Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Serve static"
@@ -34,13 +34,34 @@ mode = "sequential"
 task = "shell.exec"
 args = "node server.js"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Animation Studio Server"
+
+[[workflows.workflow]]
+name = "Animation Studio Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 80
 externalPort = 80
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
+externalPort = 80
 
 [agent]
 expertMode = true

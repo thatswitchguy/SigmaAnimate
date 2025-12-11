@@ -162,8 +162,8 @@ class AuthManager {
     }
   }
 
-  renameProject(oldName, newName) {
-    this.apiCall(`/projects/${encodeURIComponent(oldName)}`, 'PUT', { newName });
+  async renameProject(oldName, newName) {
+    await this.apiCall(`/projects/${encodeURIComponent(oldName)}`, 'PUT', { newName });
     if (this.currentProject === oldName) {
       this.currentProject = newName;
       localStorage.setItem('current_project', newName);

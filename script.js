@@ -1,9 +1,3 @@
-// Placeholder for a notification system
-const notify = {
-  success: (message) => console.log(`SUCCESS: ${message}`),
-  error: (message) => console.error(`ERROR: ${message}`),
-  info: (message) => console.log(`INFO: ${message}`),
-};
 
 class AnimationStudio {
   constructor() {

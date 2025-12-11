@@ -140,6 +140,33 @@ app.get('/api/projects/:projectName', requireAuth, async (req, res) => {
   res.json({ project });
 });
 
+// Rename project
+app.put('/api/projects/:projectName', requireAuth, async (req, res) => {
+  const projectName = decodeURIComponent(req.params.projectName);
+  const { newName } = req.body;
+  
+  if (!newName || newName.trim() === '') {
+    return res.status(400).json({ error: 'New project name required' });
+  }
+  
+  const projectsKey = `projects:${req.username}`;
+  const projects = await db.get(projectsKey) || [];
+  
+  const projectIndex = projects.findIndex(p => p.name === projectName);
+  
+  if (projectIndex === -1) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+  
+  if (projects.some(p => p.name === newName && p.name !== projectName)) {
+    return res.status(400).json({ error: 'Project name already exists' });
+  }
+  
+  projects[projectIndex].name = newName;
+  await db.set(projectsKey, projects);
+  res.json({ success: true, project: projects[projectIndex] });
+});
+
 // Delete project
 app.delete('/api/projects/:projectName', requireAuth, async (req, res) => {
   const projectName = decodeURIComponent(req.params.projectName);
