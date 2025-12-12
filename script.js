@@ -1,3 +1,13 @@
+// Wait for notify to be available from notifications.js
+let notify = window.notify;
+if (!notify) {
+  notify = {
+    success: (message) => console.log(`SUCCESS: ${message}`),
+    error: (message) => console.error(`ERROR: ${message}`),
+    info: (message) => console.log(`INFO: ${message}`),
+    warning: (message) => console.warn(`WARNING: ${message}`)
+  };
+}
 
 class AnimationStudio {
   constructor() {
