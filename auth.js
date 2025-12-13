@@ -78,6 +78,10 @@ class AuthManager {
   }
 
   async saveProject(projectName) {
+    if (!this.studio || !this.studio.canvas) {
+      throw new Error('Canvas not initialized. Please create a new project first.');
+    }
+    
     const projectData = {
       width: this.studio.canvas.width,
       height: this.studio.canvas.height,
@@ -93,43 +97,59 @@ class AuthManager {
   }
 
   async loadProject(projectName) {
-    const data = await this.apiCall(`/projects/${encodeURIComponent(projectName)}`);
-    const projectData = data.project.data;
+    try {
+      const data = await this.apiCall(`/projects/${encodeURIComponent(projectName)}`);
+      const projectData = data.project.data;
 
-    this.studio.canvas.width = projectData.width;
-    this.studio.canvas.height = projectData.height;
-    this.studio.fps = projectData.fps;
-    document.getElementById('fpsInput').value = this.studio.fps;
+      if (!this.studio || !this.studio.canvas) {
+        throw new Error('Canvas not initialized. Please refresh the page and try again.');
+      }
 
-    this.studio.frames = projectData.frames;
-    this.studio.currentFrameIndex = 0;
-    this.studio.selectedObjects = [];
+      this.studio.canvas.width = projectData.width;
+      this.studio.canvas.height = projectData.height;
+      this.studio.fps = projectData.fps;
+      document.getElementById('fpsInput').value = this.studio.fps;
 
-    this.studio.backgroundColor = projectData.backgroundColor || '#ffffff';
-    document.getElementById('backgroundColorPicker').value = this.studio.backgroundColor;
+      this.studio.frames = projectData.frames;
+      this.studio.currentFrameIndex = 0;
+      this.studio.selectedObjects = [];
 
-    const imageLoadPromises = [];
-    for (const frame of this.studio.frames) {
-      for (const obj of frame.objects) {
-        if (obj.type === 'image' && obj.src && !obj.imageElement) {
-          const promise = new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              obj.imageElement = img;
-              resolve();
-            };
-            img.onerror = () => resolve();
-            img.src = obj.src;
-          });
-          imageLoadPromises.push(promise);
+      this.studio.backgroundColor = projectData.backgroundColor || '#ffffff';
+      document.getElementById('backgroundColorPicker').value = this.studio.backgroundColor;
+
+      const imageLoadPromises = [];
+      for (const frame of this.studio.frames) {
+        for (const obj of frame.objects) {
+          if (obj.type === 'image' && obj.src && !obj.imageElement) {
+            const promise = new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                obj.imageElement = img;
+                resolve();
+              };
+              img.onerror = () => resolve();
+              img.src = obj.src;
+            });
+            imageLoadPromises.push(promise);
+          }
         }
       }
-    }
 
-    if (projectData.backgroundImageSrc) {
-      const img = new Image();
-      img.onload = () => {
-        this.studio.backgroundImage = img;
+      if (projectData.backgroundImageSrc) {
+        const img = new Image();
+        img.onload = () => {
+          this.studio.backgroundImage = img;
+          Promise.all(imageLoadPromises).then(() => {
+            this.studio.updateTimeline();
+            this.studio.render();
+            this.studio.history = [];
+            this.studio.historyIndex = -1;
+            this.studio.saveCurrentFrame();
+          });
+        };
+        img.src = projectData.backgroundImageSrc;
+      } else {
+        this.studio.backgroundImage = null;
         Promise.all(imageLoadPromises).then(() => {
           this.studio.updateTimeline();
           this.studio.render();
@@ -137,21 +157,14 @@ class AuthManager {
           this.studio.historyIndex = -1;
           this.studio.saveCurrentFrame();
         });
-      };
-      img.src = projectData.backgroundImageSrc;
-    } else {
-      this.studio.backgroundImage = null;
-      Promise.all(imageLoadPromises).then(() => {
-        this.studio.updateTimeline();
-        this.studio.render();
-        this.studio.history = [];
-        this.studio.historyIndex = -1;
-        this.studio.saveCurrentFrame();
-      });
-    }
+      }
 
-    this.currentProject = projectName;
-    localStorage.setItem('current_project', projectName);
+      this.currentProject = projectName;
+      localStorage.setItem('current_project', projectName);
+    } catch (error) {
+      notify.error(`Error loading project: ${error.message}`);
+      throw error;
+    }
   }
 
   async deleteProject(projectName) {
