@@ -1,13 +1,10 @@
-// Wait for notify to be available from notifications.js
-let notify = window.notify;
-if (!notify) {
-  notify = {
-    success: (message) => console.log(`SUCCESS: ${message}`),
-    error: (message) => console.error(`ERROR: ${message}`),
-    info: (message) => console.log(`INFO: ${message}`),
-    warning: (message) => console.warn(`WARNING: ${message}`)
-  };
-}
+// Create a proxy that uses window.notify when available, otherwise fallback to console
+const notify = {
+  success: (message) => window.notify ? window.notify.success(message) : console.log(`SUCCESS: ${message}`),
+  error: (message) => window.notify ? window.notify.error(message) : console.error(`ERROR: ${message}`),
+  info: (message) => window.notify ? window.notify.info(message) : console.log(`INFO: ${message}`),
+  warning: (message) => window.notify ? window.notify.warning(message) : console.warn(`WARNING: ${message}`)
+};
 
 class AnimationStudio {
   constructor() {

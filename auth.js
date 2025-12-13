@@ -183,6 +183,32 @@ class AuthManager {
     }
   }
 
+  async shareProject(projectName, shareWithUsername) {
+    return await this.apiCall(`/projects/${encodeURIComponent(projectName)}/share`, 'POST', { shareWithUsername });
+  }
+
+  async getSharedProjects() {
+    const data = await this.apiCall('/shared-projects');
+    return data.projects;
+  }
+
+  async copySharedProject(owner, projectName) {
+    return await this.apiCall(`/shared-projects/${encodeURIComponent(owner)}/${encodeURIComponent(projectName)}/copy`, 'POST');
+  }
+
+  async removeSharedProject(owner, projectName) {
+    return await this.apiCall(`/shared-projects/${encodeURIComponent(owner)}/${encodeURIComponent(projectName)}`, 'DELETE');
+  }
+
+  async getProjectShares(projectName) {
+    const data = await this.apiCall(`/projects/${encodeURIComponent(projectName)}/shares`);
+    return data.shares;
+  }
+
+  async unshareProject(projectName, targetUser) {
+    return await this.apiCall(`/projects/${encodeURIComponent(projectName)}/unshare/${encodeURIComponent(targetUser)}`, 'DELETE');
+  }
+
   showNotification(message, type = 'info') {
     const notificationContainer = document.getElementById('notificationContainer') || this.createNotificationContainer();
     const notification = document.createElement('div');
@@ -313,15 +339,16 @@ class AuthManager {
 
   async showProjectDialog() {
     const projects = await this.getProjects();
+    const sharedProjects = await this.getSharedProjects();
 
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
 
     const dialog = document.createElement('div');
-    dialog.style.cssText = 'background: #2d2d2d; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 400px; max-width: 600px; max-height: 80vh; overflow-y: auto;';
+    dialog.style.cssText = 'background: #2d2d2d; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 400px; max-width: 700px; max-height: 80vh; overflow-y: auto;';
 
     const title = document.createElement('h2');
-    title.textContent = `Projects (${projects.length}/10)`;
+    title.textContent = `My Projects (${projects.length}/10)`;
     title.style.cssText = 'margin-bottom: 20px; color: #fff;';
 
     const userInfo = document.createElement('div');
@@ -452,9 +479,17 @@ class AuthManager {
           }
         });
 
+        const shareBtn = document.createElement('button');
+        shareBtn.textContent = 'Share';
+        shareBtn.style.cssText = 'padding: 6px 12px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+        shareBtn.addEventListener('click', () => {
+          this.showShareDialog(project.name);
+        });
+
         buttonContainer.appendChild(loadBtn);
         buttonContainer.appendChild(renameBtn);
         buttonContainer.appendChild(saveRenameBtn);
+        buttonContainer.appendChild(shareBtn);
         buttonContainer.appendChild(deleteBtn);
 
         projectItem.appendChild(projectNameSpan);
@@ -462,6 +497,82 @@ class AuthManager {
         projectItem.appendChild(renameInput);
         projectItem.appendChild(buttonContainer);
         projectList.appendChild(projectItem);
+      });
+    }
+
+    // Shared Projects Section
+    const sharedTitle = document.createElement('h3');
+    sharedTitle.textContent = `Shared With Me (${sharedProjects.length})`;
+    sharedTitle.style.cssText = 'margin-top: 20px; margin-bottom: 15px; color: #17a2b8; border-top: 1px solid #444; padding-top: 20px;';
+
+    const sharedList = document.createElement('div');
+    sharedList.style.cssText = 'margin-bottom: 20px;';
+
+    if (sharedProjects.length === 0) {
+      const emptyMsg = document.createElement('p');
+      emptyMsg.textContent = 'No projects have been shared with you yet.';
+      emptyMsg.style.cssText = 'color: #aaa; font-style: italic;';
+      sharedList.appendChild(emptyMsg);
+    } else {
+      sharedProjects.forEach(project => {
+        const projectItem = document.createElement('div');
+        projectItem.style.cssText = 'background: #3a4a5a; padding: 12px; border-radius: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+
+        const projectInfo = document.createElement('div');
+        projectInfo.style.cssText = 'flex: 1;';
+
+        const projectNameSpan = document.createElement('span');
+        projectNameSpan.textContent = project.name;
+        projectNameSpan.style.cssText = 'color: #fff; display: block;';
+
+        const ownerSpan = document.createElement('span');
+        ownerSpan.textContent = `From: ${project.owner}`;
+        ownerSpan.style.cssText = 'color: #aaa; font-size: 12px;';
+
+        projectInfo.appendChild(projectNameSpan);
+        projectInfo.appendChild(ownerSpan);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = 'display: flex; gap: 5px;';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy to My Projects';
+        copyBtn.style.cssText = 'padding: 6px 12px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+        copyBtn.addEventListener('click', async () => {
+          try {
+            const result = await this.copySharedProject(project.owner, project.name);
+            this.showNotification(`Copied as "${result.projectName}"!`, 'success');
+            this.safeRemoveModal(modal);
+            this.showProjectDialog();
+          } catch (e) {
+            this.showNotification(e.message, 'error');
+          }
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.style.cssText = 'padding: 6px 12px; background: #6c757d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+        removeBtn.addEventListener('click', async () => {
+          try {
+            await this.removeSharedProject(project.owner, project.name);
+            this.showNotification('Removed from shared list', 'success');
+            projectItem.remove();
+            if (sharedList.querySelectorAll('div').length === 0) {
+              const emptyMsg = document.createElement('p');
+              emptyMsg.textContent = 'No projects have been shared with you yet.';
+              emptyMsg.style.cssText = 'color: #aaa; font-style: italic;';
+              sharedList.appendChild(emptyMsg);
+            }
+          } catch (e) {
+            this.showNotification(e.message, 'error');
+          }
+        });
+
+        buttonContainer.appendChild(copyBtn);
+        buttonContainer.appendChild(removeBtn);
+        projectItem.appendChild(projectInfo);
+        projectItem.appendChild(buttonContainer);
+        sharedList.appendChild(projectItem);
       });
     }
 
@@ -510,6 +621,8 @@ class AuthManager {
     dialog.appendChild(title);
     dialog.appendChild(userInfo);
     dialog.appendChild(projectList);
+    dialog.appendChild(sharedTitle);
+    dialog.appendChild(sharedList);
     dialog.appendChild(newProjectInput);
     dialog.appendChild(actionButtonContainer);
     dialog.appendChild(closeBtn);
@@ -519,6 +632,132 @@ class AuthManager {
     if (this.currentProject) {
       newProjectInput.value = this.currentProject;
     }
+  }
+
+  async showShareDialog(projectName) {
+    const shares = await this.getProjectShares(projectName);
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10001;';
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background: #2d2d2d; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 400px;';
+
+    const title = document.createElement('h3');
+    title.textContent = `Share "${projectName}"`;
+    title.style.cssText = 'margin-bottom: 20px; color: #fff;';
+
+    // Current shares section
+    const sharesSection = document.createElement('div');
+    sharesSection.style.cssText = 'margin-bottom: 20px;';
+    
+    const sharesTitle = document.createElement('h4');
+    sharesTitle.textContent = 'Currently shared with:';
+    sharesTitle.style.cssText = 'color: #aaa; margin-bottom: 10px; font-size: 14px;';
+    sharesSection.appendChild(sharesTitle);
+    
+    const sharesList = document.createElement('div');
+    sharesList.style.cssText = 'max-height: 150px; overflow-y: auto;';
+    
+    if (shares.length === 0) {
+      const emptyMsg = document.createElement('p');
+      emptyMsg.textContent = 'Not shared with anyone yet.';
+      emptyMsg.style.cssText = 'color: #666; font-style: italic; font-size: 13px;';
+      sharesList.appendChild(emptyMsg);
+    } else {
+      shares.forEach(username => {
+        const shareItem = document.createElement('div');
+        shareItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #3a4a5a; border-radius: 4px; margin-bottom: 5px;';
+        
+        const usernameSpan = document.createElement('span');
+        usernameSpan.textContent = username;
+        usernameSpan.style.cssText = 'color: #fff;';
+        
+        const revokeBtn = document.createElement('button');
+        revokeBtn.textContent = 'Revoke';
+        revokeBtn.style.cssText = 'padding: 4px 10px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
+        revokeBtn.addEventListener('click', async () => {
+          try {
+            await this.unshareProject(projectName, username);
+            this.showNotification(`Access revoked for ${username}`, 'success');
+            shareItem.remove();
+            if (sharesList.querySelectorAll('div').length === 0) {
+              const emptyMsg = document.createElement('p');
+              emptyMsg.textContent = 'Not shared with anyone yet.';
+              emptyMsg.style.cssText = 'color: #666; font-style: italic; font-size: 13px;';
+              sharesList.appendChild(emptyMsg);
+            }
+          } catch (e) {
+            this.showNotification(e.message, 'error');
+          }
+        });
+        
+        shareItem.appendChild(usernameSpan);
+        shareItem.appendChild(revokeBtn);
+        sharesList.appendChild(shareItem);
+      });
+    }
+    
+    sharesSection.appendChild(sharesList);
+
+    // New share section
+    const newShareSection = document.createElement('div');
+    newShareSection.style.cssText = 'border-top: 1px solid #444; padding-top: 15px;';
+    
+    const newShareTitle = document.createElement('h4');
+    newShareTitle.textContent = 'Share with new user:';
+    newShareTitle.style.cssText = 'color: #aaa; margin-bottom: 10px; font-size: 14px;';
+    newShareSection.appendChild(newShareTitle);
+
+    const usernameInput = document.createElement('input');
+    usernameInput.type = 'text';
+    usernameInput.placeholder = 'Enter username to share with...';
+    usernameInput.style.cssText = 'width: 100%; padding: 10px; background: #3d3d3d; color: #fff; border: 1px solid #555; border-radius: 4px; margin-bottom: 15px; font-size: 14px;';
+    newShareSection.appendChild(usernameInput);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 10px;';
+
+    const shareBtn = document.createElement('button');
+    shareBtn.textContent = 'Share';
+    shareBtn.style.cssText = 'flex: 1; padding: 10px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    shareBtn.addEventListener('click', async () => {
+      const shareWithUsername = usernameInput.value.trim();
+      if (!shareWithUsername) {
+        this.showNotification('Please enter a username', 'error');
+        return;
+      }
+      try {
+        await this.shareProject(projectName, shareWithUsername);
+        this.showNotification(`Project shared with ${shareWithUsername}!`, 'success');
+        this.safeRemoveModal(modal);
+        this.showShareDialog(projectName);
+      } catch (e) {
+        this.showNotification(e.message, 'error');
+      }
+    });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Close';
+    cancelBtn.style.cssText = 'flex: 1; padding: 10px; background: #3d3d3d; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
+    cancelBtn.addEventListener('click', () => this.safeRemoveModal(modal));
+
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') shareBtn.click();
+      if (e.key === 'Escape') this.safeRemoveModal(modal);
+    });
+
+    buttonContainer.appendChild(shareBtn);
+    buttonContainer.appendChild(cancelBtn);
+    newShareSection.appendChild(buttonContainer);
+    
+    dialog.appendChild(title);
+    dialog.appendChild(sharesSection);
+    dialog.appendChild(newShareSection);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    usernameInput.focus();
   }
 
   safeRemoveModal(modal) {

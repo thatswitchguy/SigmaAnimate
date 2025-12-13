@@ -91,3 +91,4 @@ class NotificationManager {
 }
 
 const notify = new NotificationManager();
+window.notify = notify;
