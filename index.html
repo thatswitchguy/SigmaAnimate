@@ -13,17 +13,17 @@
   <div class="container">
     <header>
       <div class="header-top">
-        <button id="logoutBtn" class="logout-btn">🚪 Logout</button>
+        <button id="logoutBtn" class="logout-btn">➜] Logout</button>
         <h1>Sigma Animate</h1>
-        <button id="projectsBtn" class="projects-btn">📁 Projects</button>
+        <button id="projectsBtn" class="projects-btn">☰ Projects</button>
       </div>
       <div class="toolbar">
         <button id="pencilBtn" class="tool-btn active">✎ Pencil</button>
         <button id="smartDrawBtn" class="tool-btn">➤ Mouse</button>
-        <button id="fillBtn" class="tool-btn">🪣 Fill</button>
-        <button id="eraserBtn" class="tool-btn">🧹 Eraser</button>
+        <button id="fillBtn" class="tool-btn icon-btn"><img src="icons/fill.png" alt="Fill" class="btn-icon"> Fill</button>
+        <button id="eraserBtn" class="tool-btn icon-btn"><img src="icons/eraser.png" alt="Eraser" class="btn-icon"> Eraser</button>
         <button id="textBtn" class="tool-btn">T Text</button>
-        <button id="clearBtn" class="tool-btn">🗑️ Clear</button>
+        <button id="clearBtn" class="tool-btn icon-btn"><img src="icons/clear.png" alt="Clear" class="btn-icon"> Clear</button>
         <button id="undoBtn" class="tool-btn">↲ Undo</button>
         <button id="redoBtn" class="tool-btn">↳ Redo</button>
         <input type="color" id="colorPicker" value="#000000">
@@ -35,11 +35,11 @@
       </div>
       <div class="file-controls">
         <button id="cloudSaveBtn">💾 Save</button>
-        <button id="cloudLoadBtn">📂 Load</button>
+        <button id="cloudLoadBtn">↻ Load</button>
         <button id="loadBtn">⬆ Upload</button>
-        <button id="uploadAnimationBtn">⬆ Upload Animation</button>
+        <button id="uploadAnimationBtn" class="icon-btn"><img src="icons/upload.png" alt="Upload" class="btn-icon"> Upload Animation</button>
         <input type="file" id="animationUpload" accept="video/webm" style="display: none;">
-        <button id="exportBtn">⏭ Export Video</button>
+        <button id="exportBtn" class="icon-btn"><img src="icons/export.png" alt="Export" class="btn-icon"> Export Video</button>
         <button id="previewBtn">▶ Preview</button>
       </div>
     </header>
@@ -56,7 +56,7 @@
             <button id="circleBtn" class="insert-btn">⏺ Circle</button>
             <button id="squareBtn" class="insert-btn">⬜ Square</button>
             <button id="triangleBtn" class="insert-btn">▲ Triangle</button>
-            <button id="lineBtn" class="insert-btn">📏 Line</button>
+            <button id="lineBtn" class="insert-btn icon-btn"><img src="icons/line.png" alt="Line" class="btn-icon"> Line</button>
           </div>
           <div class="resize-controls" id="resizeControls" style="display: none;">
             <h4>Resize Shape</h4>

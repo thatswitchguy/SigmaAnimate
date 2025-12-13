@@ -692,3 +692,16 @@ input[type="checkbox"] {
   opacity: 1;
 }
 
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: invert(1);
+}
+
