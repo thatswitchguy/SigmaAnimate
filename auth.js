@@ -6,6 +6,9 @@ class AuthManager {
     this.currentProject = null;
   }
 
+  // -----------------------
+  // Generic API helper
+  // -----------------------
   async apiCall(endpoint, method = 'GET', body = null) {
     const options = {
       method,
@@ -23,7 +26,15 @@ class AuthManager {
     }
 
     const response = await fetch(`/api${endpoint}`, options);
-    const data = await response.json();
+
+    // Try to parse JSON safely — some errors might not return JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      // if parsing fails, create a minimal object
+      data = { error: 'Invalid JSON response from server' };
+    }
 
     if (!response.ok) {
       throw new Error(data.error || 'Request failed');
@@ -32,6 +43,9 @@ class AuthManager {
     return data;
   }
 
+  // -----------------------
+  // Auth methods
+  // -----------------------
   async register(username, password) {
     const data = await this.apiCall('/register', 'POST', { username, password });
     return data;
@@ -72,6 +86,9 @@ class AuthManager {
     }
   }
 
+  // -----------------------
+  // Projects
+  // -----------------------
   async getProjects() {
     const data = await this.apiCall('/projects');
     return data.projects;
@@ -81,7 +98,7 @@ class AuthManager {
     if (!this.studio || !this.studio.canvas) {
       throw new Error('Canvas not initialized. Please create a new project first.');
     }
-    
+
     const projectData = {
       width: this.studio.canvas.width,
       height: this.studio.canvas.height,
@@ -96,8 +113,29 @@ class AuthManager {
     localStorage.setItem('current_project', projectName);
   }
 
+  // Wait helper: resolves when studio.canvas exists (or rejects after timeout)
+  waitForCanvas(timeout = 3000) {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      const check = () => {
+        if (this.studio && this.studio.canvas) {
+          resolve();
+        } else if (Date.now() - start > timeout) {
+          reject(new Error('Canvas not ready'));
+        } else {
+          requestAnimationFrame(check);
+        }
+      };
+      check();
+    });
+  }
+
+  // Improved loadProject: waits for canvas, loads images robustly, and shows accurate errors
   async loadProject(projectName) {
     try {
+      // Wait for the editor/canvas to be ready (avoids race conditions)
+      await this.waitForCanvas();
+
       const data = await this.apiCall(`/projects/${encodeURIComponent(projectName)}`);
       const projectData = data.project.data;
 
@@ -105,20 +143,25 @@ class AuthManager {
         throw new Error('Canvas not initialized. Please refresh the page and try again.');
       }
 
+      // Apply basic project properties
       this.studio.canvas.width = projectData.width;
       this.studio.canvas.height = projectData.height;
       this.studio.fps = projectData.fps;
-      document.getElementById('fpsInput').value = this.studio.fps;
+      const fpsInput = document.getElementById('fpsInput');
+      if (fpsInput) fpsInput.value = this.studio.fps;
 
-      this.studio.frames = projectData.frames;
+      this.studio.frames = projectData.frames || [];
       this.studio.currentFrameIndex = 0;
       this.studio.selectedObjects = [];
 
       this.studio.backgroundColor = projectData.backgroundColor || '#ffffff';
-      document.getElementById('backgroundColorPicker').value = this.studio.backgroundColor;
+      const bgPicker = document.getElementById('backgroundColorPicker');
+      if (bgPicker) bgPicker.value = this.studio.backgroundColor;
 
+      // Preload all object images across frames
       const imageLoadPromises = [];
       for (const frame of this.studio.frames) {
+        if (!frame.objects) continue;
         for (const obj of frame.objects) {
           if (obj.type === 'image' && obj.src && !obj.imageElement) {
             const promise = new Promise((resolve) => {
@@ -127,7 +170,10 @@ class AuthManager {
                 obj.imageElement = img;
                 resolve();
               };
-              img.onerror = () => resolve();
+              img.onerror = () => {
+                // Fail gracefully: resolve so loading continues
+                resolve();
+              };
               img.src = obj.src;
             });
             imageLoadPromises.push(promise);
@@ -135,34 +181,56 @@ class AuthManager {
         }
       }
 
+      // Handle background image (if any)
       if (projectData.backgroundImageSrc) {
-        const img = new Image();
-        img.onload = () => {
-          this.studio.backgroundImage = img;
-          Promise.all(imageLoadPromises).then(() => {
-            this.studio.updateTimeline();
-            this.studio.render();
-            this.studio.history = [];
-            this.studio.historyIndex = -1;
-            this.studio.saveCurrentFrame();
-          });
-        };
-        img.src = projectData.backgroundImageSrc;
+        const bgPromise = new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            this.studio.backgroundImage = img;
+            resolve();
+          };
+          img.onerror = () => {
+            // If background fails to load, clear it and continue
+            this.studio.backgroundImage = null;
+            resolve();
+          };
+          img.src = projectData.backgroundImageSrc;
+        });
+        imageLoadPromises.push(bgPromise);
       } else {
         this.studio.backgroundImage = null;
-        Promise.all(imageLoadPromises).then(() => {
-          this.studio.updateTimeline();
-          this.studio.render();
-          this.studio.history = [];
-          this.studio.historyIndex = -1;
-          this.studio.saveCurrentFrame();
-        });
       }
 
+      // Wait for all images (and background) to settle, then update UI
+      await Promise.all(imageLoadPromises);
+
+      // Update timeline, render and reset history
+      if (typeof this.studio.updateTimeline === 'function') this.studio.updateTimeline();
+      if (typeof this.studio.render === 'function') this.studio.render();
+
+      // Reset undo history and save a clean snapshot of current frame
+      this.studio.history = [];
+      this.studio.historyIndex = -1;
+      if (typeof this.studio.saveCurrentFrame === 'function') this.studio.saveCurrentFrame();
+
+      // finalise
       this.currentProject = projectName;
       localStorage.setItem('current_project', projectName);
     } catch (error) {
-      notify.error(`Error loading project: ${error.message}`);
+      // Show accurate error messages depending on real cause
+      if (!this.studio || !this.studio.canvas) {
+        this.showNotification(
+          'Error loading project: Canvas not initialised. Please refresh the page and try again.',
+          'error'
+        );
+      } else {
+        // If the error is our waitForCanvas timeout, present a helpful message
+        if (error && error.message === 'Canvas not ready') {
+          this.showNotification('Canvas did not initialise in time. Try refreshing the page.', 'error');
+        } else {
+          this.showNotification(error.message || 'Failed to load project.', 'error');
+        }
+      }
       throw error;
     }
   }
@@ -209,6 +277,9 @@ class AuthManager {
     return await this.apiCall(`/projects/${encodeURIComponent(projectName)}/unshare/${encodeURIComponent(targetUser)}`, 'DELETE');
   }
 
+  // -----------------------
+  // Notifications & UI helpers
+  // -----------------------
   showNotification(message, type = 'info') {
     const notificationContainer = document.getElementById('notificationContainer') || this.createNotificationContainer();
     const notification = document.createElement('div');
@@ -237,9 +308,10 @@ class AuthManager {
 
     notificationContainer.appendChild(notification);
 
-    setTimeout(() => {
+    // Show and auto-hide
+    requestAnimationFrame(() => {
       notification.style.opacity = '1';
-    }, 10);
+    });
 
     setTimeout(() => {
       notification.style.opacity = '0';
@@ -260,6 +332,9 @@ class AuthManager {
     return container;
   }
 
+  // -----------------------
+  // Dialogs: Auth & Projects
+  // -----------------------
   showAuthDialog() {
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
@@ -636,7 +711,7 @@ class AuthManager {
 
   async showShareDialog(projectName) {
     const shares = await this.getProjectShares(projectName);
-    
+
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10001;';
 
@@ -650,15 +725,15 @@ class AuthManager {
     // Current shares section
     const sharesSection = document.createElement('div');
     sharesSection.style.cssText = 'margin-bottom: 20px;';
-    
+
     const sharesTitle = document.createElement('h4');
     sharesTitle.textContent = 'Currently shared with:';
     sharesTitle.style.cssText = 'color: #aaa; margin-bottom: 10px; font-size: 14px;';
     sharesSection.appendChild(sharesTitle);
-    
+
     const sharesList = document.createElement('div');
     sharesList.style.cssText = 'max-height: 150px; overflow-y: auto;';
-    
+
     if (shares.length === 0) {
       const emptyMsg = document.createElement('p');
       emptyMsg.textContent = 'Not shared with anyone yet.';
@@ -668,11 +743,11 @@ class AuthManager {
       shares.forEach(username => {
         const shareItem = document.createElement('div');
         shareItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #3a4a5a; border-radius: 4px; margin-bottom: 5px;';
-        
+
         const usernameSpan = document.createElement('span');
         usernameSpan.textContent = username;
         usernameSpan.style.cssText = 'color: #fff;';
-        
+
         const revokeBtn = document.createElement('button');
         revokeBtn.textContent = 'Revoke';
         revokeBtn.style.cssText = 'padding: 4px 10px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
@@ -691,19 +766,19 @@ class AuthManager {
             this.showNotification(e.message, 'error');
           }
         });
-        
+
         shareItem.appendChild(usernameSpan);
         shareItem.appendChild(revokeBtn);
         sharesList.appendChild(shareItem);
       });
     }
-    
+
     sharesSection.appendChild(sharesList);
 
     // New share section
     const newShareSection = document.createElement('div');
     newShareSection.style.cssText = 'border-top: 1px solid #444; padding-top: 15px;';
-    
+
     const newShareTitle = document.createElement('h4');
     newShareTitle.textContent = 'Share with new user:';
     newShareTitle.style.cssText = 'color: #aaa; margin-bottom: 10px; font-size: 14px;';
@@ -750,7 +825,7 @@ class AuthManager {
     buttonContainer.appendChild(shareBtn);
     buttonContainer.appendChild(cancelBtn);
     newShareSection.appendChild(buttonContainer);
-    
+
     dialog.appendChild(title);
     dialog.appendChild(sharesSection);
     dialog.appendChild(newShareSection);

@@ -10,7 +10,7 @@ publicDir = "/"
 deploymentTarget = "static"
 
 [workflows]
-runButton = "Project"
+runButton = "Run Server"
 
 [[workflows.workflow]]
 name = "Serve static"
@@ -54,6 +54,10 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[ports]]
+localPort = 80
+externalPort = 3000
 
 [[ports]]
 localPort = 5000
