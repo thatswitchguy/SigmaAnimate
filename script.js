@@ -55,7 +55,9 @@ class AnimationStudio {
     this.backgroundColor = "#ffffff";
     this.backgroundImage = null;
 
+    // Connect auth manager studio reference
     this.authManager = new AuthManager(this);
+    window.authManager = this.authManager;
 
     this.lastX = 0;
     this.lastY = 0;
@@ -361,10 +363,10 @@ class AnimationStudio {
       .addEventListener("click", () => this.handleSave());
     document
       .getElementById("cloudLoadBtn")
-      .addEventListener("click", () => this.handleLoad());
+      .addEventListener("click", () => this.authManager.showProjectDialog());
     document
       .getElementById("loadBtn")
-      .addEventListener("click", () => this.loadProject());
+      .addEventListener("click", () => this.authManager.showProjectDialog());
     document
       .getElementById("uploadAnimationBtn")
       .addEventListener("click", () => {

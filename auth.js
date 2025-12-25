@@ -114,14 +114,18 @@ class AuthManager {
   }
 
   // Wait helper: resolves when studio.canvas exists (or rejects after timeout)
-  waitForCanvas(timeout = 3000) {
+  waitForCanvas(timeout = 5000) {
     return new Promise((resolve, reject) => {
       const start = Date.now();
       const check = () => {
-        if (this.studio && this.studio.canvas) {
+        // More robust check for studio and canvas
+        const studio = this.studio || window.studio || (window.studio = window.authManager?.studio);
+        if (studio && studio.canvas) {
+          // Update this.studio if it was missing
+          if (!this.studio) this.studio = studio;
           resolve();
         } else if (Date.now() - start > timeout) {
-          reject(new Error('Canvas not ready'));
+          reject(new Error('Canvas not ready (timeout)'));
         } else {
           requestAnimationFrame(check);
         }
@@ -205,13 +209,14 @@ class AuthManager {
       await Promise.all(imageLoadPromises);
 
       // Update timeline, render and reset history
-      if (typeof this.studio.updateTimeline === 'function') this.studio.updateTimeline();
-      if (typeof this.studio.render === 'function') this.studio.render();
+      const studio = this.studio || window.studio;
+      if (typeof studio.updateTimeline === 'function') studio.updateTimeline();
+      if (typeof studio.render === 'function') studio.render();
 
       // Reset undo history and save a clean snapshot of current frame
-      this.studio.history = [];
-      this.studio.historyIndex = -1;
-      if (typeof this.studio.saveCurrentFrame === 'function') this.studio.saveCurrentFrame();
+      studio.history = [];
+      studio.historyIndex = -1;
+      if (typeof studio.saveCurrentFrame === 'function') studio.saveCurrentFrame();
 
       // finalise
       this.currentProject = projectName;
