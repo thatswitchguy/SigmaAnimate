@@ -3673,12 +3673,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (typeof AuthManager !== 'undefined') {
     window.studio = new AnimationStudio();
     
+    // Check for project to load in URL or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectToLoad = urlParams.get('project') || localStorage.getItem('current_project');
+    
     // Automatically redirect to login page if not logged in
     const isLoggedIn = await window.studio.authManager.verify();
     if (!isLoggedIn) {
       window.location.href = "login.html";
+      return;
+    }
+
+    if (projectToLoad) {
+      try {
+        await window.studio.authManager.loadProject(projectToLoad);
+      } catch (e) {
+        console.error("Failed to auto-load project:", e);
+      }
     }
   } else {
+    // ... rest of fallback logic
     console.error("AuthManager not found. Ensure auth.js is loaded before script.js.");
     // Fallback: wait a bit more or try to initialize anyway if script.js is module
     setTimeout(async () => {

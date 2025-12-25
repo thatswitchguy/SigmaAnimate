@@ -114,17 +114,24 @@ class AuthManager {
   }
 
   // Wait helper: resolves when studio.canvas exists (or rejects after timeout)
-  waitForCanvas(timeout = 5000) {
+  waitForCanvas(timeout = 10000) {
     return new Promise((resolve, reject) => {
       const start = Date.now();
       const check = () => {
         // More robust check for studio and canvas
-        const studio = this.studio || window.studio || (window.studio = window.authManager?.studio);
+        const studio = this.studio || window.studio;
         if (studio && studio.canvas) {
-          // Update this.studio if it was missing
           if (!this.studio) this.studio = studio;
           resolve();
-        } else if (Date.now() - start > timeout) {
+          return;
+        } 
+        
+        if (Date.now() - start > timeout) {
+          console.error("Canvas timeout. Studio state:", {
+            this_studio: !!this.studio,
+            window_studio: !!window.studio,
+            canvas: !!(this.studio?.canvas || window.studio?.canvas)
+          });
           reject(new Error('Canvas not ready (timeout)'));
         } else {
           requestAnimationFrame(check);
