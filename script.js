@@ -58,6 +58,7 @@ class AnimationStudio {
     // Connect auth manager studio reference
     this.authManager = new AuthManager(this);
     window.authManager = this.authManager;
+    window.studio = this;
 
     this.lastX = 0;
     this.lastY = 0;
