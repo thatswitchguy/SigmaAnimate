@@ -141,108 +141,93 @@ class AuthManager {
     });
   }
 
-  // Improved loadProject: waits for canvas, loads images robustly, and shows accurate errors
   async loadProject(projectName) {
+    console.log(`[AuthManager] loadProject started for: ${projectName}`);
     try {
-      // Wait for the editor/canvas to be ready (avoids race conditions)
-      await this.waitForCanvas();
+      // Explicitly wait for canvas to ensure studio is ready
+      await this.waitForCanvas(15000);
+
+      const studio = this.studio || window.studio;
+      console.log(`[AuthManager] Canvas ready, fetching project data...`);
 
       const data = await this.apiCall(`/projects/${encodeURIComponent(projectName)}`);
-      const projectData = data.project.data;
-
-      if (!this.studio || !this.studio.canvas) {
-        throw new Error('Canvas not initialized. Please refresh the page and try again.');
+      if (!data || !data.project || !data.project.data) {
+        throw new Error('Invalid project data received from server');
       }
+      
+      const projectData = data.project.data;
+      console.log(`[AuthManager] Project data received:`, projectData);
 
       // Apply basic project properties
-      this.studio.canvas.width = projectData.width;
-      this.studio.canvas.height = projectData.height;
-      this.studio.fps = projectData.fps;
+      if (studio.canvas) {
+        studio.canvas.width = projectData.width || 800;
+        studio.canvas.height = projectData.height || 600;
+      }
+      
+      studio.fps = projectData.fps || 12;
       const fpsInput = document.getElementById('fpsInput');
-      if (fpsInput) fpsInput.value = this.studio.fps;
+      if (fpsInput) fpsInput.value = studio.fps;
 
-      this.studio.frames = projectData.frames || [];
-      this.studio.currentFrameIndex = 0;
-      this.studio.selectedObjects = [];
+      studio.frames = projectData.frames || [studio.createEmptyFrame()];
+      studio.currentFrameIndex = 0;
+      studio.selectedObjects = [];
 
-      this.studio.backgroundColor = projectData.backgroundColor || '#ffffff';
+      studio.backgroundColor = projectData.backgroundColor || '#ffffff';
       const bgPicker = document.getElementById('backgroundColorPicker');
-      if (bgPicker) bgPicker.value = this.studio.backgroundColor;
+      if (bgPicker) bgPicker.value = studio.backgroundColor;
+
+      // Handle background image (if any)
+      if (projectData.backgroundImageSrc) {
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            studio.backgroundImage = img;
+            resolve();
+          };
+          img.onerror = () => {
+            studio.backgroundImage = null;
+            resolve();
+          };
+          img.src = projectData.backgroundImageSrc;
+        });
+      } else {
+        studio.backgroundImage = null;
+      }
 
       // Preload all object images across frames
       const imageLoadPromises = [];
-      for (const frame of this.studio.frames) {
+      for (const frame of studio.frames) {
         if (!frame.objects) continue;
         for (const obj of frame.objects) {
           if (obj.type === 'image' && obj.src && !obj.imageElement) {
-            const promise = new Promise((resolve) => {
+            imageLoadPromises.push(new Promise((resolve) => {
               const img = new Image();
               img.onload = () => {
                 obj.imageElement = img;
                 resolve();
               };
-              img.onerror = () => {
-                // Fail gracefully: resolve so loading continues
-                resolve();
-              };
+              img.onerror = () => resolve();
               img.src = obj.src;
-            });
-            imageLoadPromises.push(promise);
+            }));
           }
         }
       }
-
-      // Handle background image (if any)
-      if (projectData.backgroundImageSrc) {
-        const bgPromise = new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            this.studio.backgroundImage = img;
-            resolve();
-          };
-          img.onerror = () => {
-            // If background fails to load, clear it and continue
-            this.studio.backgroundImage = null;
-            resolve();
-          };
-          img.src = projectData.backgroundImageSrc;
-        });
-        imageLoadPromises.push(bgPromise);
-      } else {
-        this.studio.backgroundImage = null;
-      }
-
-      // Wait for all images (and background) to settle, then update UI
       await Promise.all(imageLoadPromises);
 
-      // Update timeline, render and reset history
-      const studio = this.studio || window.studio;
+      // Update UI and state
       if (typeof studio.updateTimeline === 'function') studio.updateTimeline();
       if (typeof studio.render === 'function') studio.render();
 
-      // Reset undo history and save a clean snapshot of current frame
       studio.history = [];
       studio.historyIndex = -1;
       if (typeof studio.saveCurrentFrame === 'function') studio.saveCurrentFrame();
 
-      // finalise
       this.currentProject = projectName;
       localStorage.setItem('current_project', projectName);
+      console.log(`[AuthManager] Project "${projectName}" loaded successfully`);
     } catch (error) {
-      // Show accurate error messages depending on real cause
-      if (!this.studio || !this.studio.canvas) {
-        this.showNotification(
-          'Error loading project: Canvas not initialised. Please refresh the page and try again.',
-          'error'
-        );
-      } else {
-        // If the error is our waitForCanvas timeout, present a helpful message
-        if (error && error.message === 'Canvas not ready') {
-          this.showNotification('Canvas did not initialise in time. Try refreshing the page.', 'error');
-        } else {
-          this.showNotification(error.message || 'Failed to load project.', 'error');
-        }
-      }
+      console.error(`[AuthManager] Load project failed:`, error);
+      this.showNotification(error.message || 'Failed to load project.', 'error');
       throw error;
     }
   }
