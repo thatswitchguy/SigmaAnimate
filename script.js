@@ -367,7 +367,9 @@ class AnimationStudio {
       .addEventListener("click", () => this.authManager.showProjectDialog());
     document
       .getElementById("loadBtn")
-      .addEventListener("click", () => this.loadProject());
+      .addEventListener("click", () => {
+        document.getElementById("imageUpload").click();
+      });
     document
       .getElementById("uploadAnimationBtn")
       .addEventListener("click", () => {
