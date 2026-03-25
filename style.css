@@ -132,6 +132,47 @@ h1 {
   background: #0062ad;
 }
 
+/* Load projects button */
+.cloudLoadBtn {
+  background: #2a8500 !important;
+}
+
+.cloudLoadBtn:hover {
+  background: #1b5700 !important;
+}
+/* Upload Image button */
+
+.loadBtn {
+  position: relative;
+  padding: 15px 30px;
+  background: #000000 !important;
+  overflow: hidden; /* Clips the background inside the button */
+  border: none;
+  cursor: pointer;
+}
+
+/* The sliding layer */
+.loadBtn::before {
+  display: flex;
+  justify-content: center; /* Horizontal centering */
+  align-items: center; 
+  content: '⬆ Upload';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #014e89 !important;
+  transform: translateX(-100%); /* Start hidden to the left */
+  transition: transform 0.4s ease;
+  z-index: 0;
+}
+
+.loadBtn:hover::before {
+  transform: translateX(0); /* Swipe to the right on hover */
+}
+
+
 #previewBtn {
   background: #0078d4 !important;
 }

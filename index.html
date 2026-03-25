@@ -6,6 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <title>Sigma Animate</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.png">
   <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
 
@@ -15,7 +16,6 @@
       <div class="header-top">
         <button id="logoutBtn" class="logout-btn">➜] Logout</button>
         <h1>Sigma Animate</h1>
-        <button id="projectsBtn" class="projects-btn">☰ Projects</button>
       </div>
       <div class="toolbar">
         <button id="pencilBtn" class="tool-btn active">✎ Pencil</button>
@@ -34,8 +34,8 @@
         </label>
       </div>
       <div class="file-controls">
-        <button id="cloudSaveBtn"><img src="https://cdn-icons-png.freepik.com/512/9476/9476930.png?ga=GA1.1.1935462930.1765644592" style="width: 20px; height: 20px;"> Save</button>
-        <button id="cloudLoadBtn">↻ Load</button>
+        <button id="cloudSaveBtn">⏎ Save</button>
+        <button id="cloudLoadBtn" class="cloudLoadBtn">☰ Load Project</button>
         <button id="loadBtn">⬆ Upload</button>
         <button id="uploadAnimationBtn" class="icon-btn"><img src="icons/upload.png" alt="Upload" class="btn-icon"> Upload Animation</button>
         <input type="file" id="animationUpload" accept="video/webm" style="display: none;">
@@ -68,10 +68,10 @@
           <div class="selection-controls" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
             <h4>Selection</h4>
             <button id="groupBtn" class="insert-btn">🔳 Group</button>
-            <button id="ungroupBtn" class="insert-btn">🔓 Ungroup</button>
+            <button id="ungroupBtn" class="insert-btn">↔ Ungroup</button>
             <button id="deleteSelectedBtn" class="insert-btn">⌫ Delete</button>
             <button id="copyBtn" class="insert-btn">📋 Copy (Ctrl+C)</button>
-            <button id="pasteBtn" class="insert-btn">📄 Paste (Ctrl+V)</button>
+            <button id="pasteBtn" class="insert-btn">📃 Paste (Ctrl+V)</button>
             <button id="duplicateBtn" class="insert-btn">⿻ Duplicate (Ctrl+D)</button>
             <button id="renameBtn" class="insert-btn">✎ Rename</button>
             <div style="margin-top: 10px;">

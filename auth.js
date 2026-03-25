@@ -471,7 +471,7 @@ class AuthManager {
 
         const renameBtn = document.createElement('button');
         renameBtn.textContent = 'Rename';
-        renameBtn.style.cssText = 'padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer;';
+        renameBtn.style.cssText = 'padding: 6px 12px; background: #0078d4; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
         renameBtn.addEventListener('click', () => {
           projectNameSpan.style.display = 'none';
           projectDate.style.display = 'none';
@@ -575,7 +575,7 @@ class AuthManager {
     // Shared Projects Section
     const sharedTitle = document.createElement('h3');
     sharedTitle.textContent = `Shared With Me (${sharedProjects.length})`;
-    sharedTitle.style.cssText = 'margin-top: 20px; margin-bottom: 15px; color: #17a2b8; border-top: 1px solid #444; padding-top: 20px;';
+    sharedTitle.style.cssText = 'margin-top: 20px; margin-bottom: 15px; color: #ffffff; border-top: 1px solid #444; padding-top: 20px;';
 
     const sharedList = document.createElement('div');
     sharedList.style.cssText = 'margin-bottom: 20px;';
