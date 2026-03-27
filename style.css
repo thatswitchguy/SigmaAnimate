@@ -132,6 +132,29 @@ h1 {
   background: #0062ad;
 }
 
+/* Load Projects button*/
+
+.cloudLoadBtn{
+  color: #0078d4;
+}
+
+.cloudLoadBtn:hover{
+  color: #fff;
+  border: 2px solid #8c8c8c !important;
+}
+
+/* End */
+/* Save */
+.cloudSaveBtn{
+  color: #0078d4;
+}
+
+.cloudSaveBtn:hover{
+  color: #fff;
+  border: 2px solid #8c8c8c !important;
+}
+/* End */
+
 #previewBtn {
   background: #0078d4 !important;
 }
@@ -560,7 +583,7 @@ input[type="checkbox"] {
 }
 
 #drawCanvas.cursor-text {
-  cursor: text !important;
+  cursor: crosshair !important;
 }
 
 .animation-controls {

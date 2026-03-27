@@ -3045,6 +3045,7 @@ class AnimationStudio {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animation Preview</title>
+  <link rel="icon" type="image/x-icon" href="favicon.png">
   <style>
     * {
       margin: 0;

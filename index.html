@@ -9,7 +9,11 @@
   <link rel="icon" type="image/x-icon" href="/favicon.png">
   <link href="style.css" rel="stylesheet" type="text/css" />
   <script> 
-    window.location.href = "login.html";
+    const LoggedIn = localStorage.getItem("auth_token");
+
+    if (!LoggedIn) {
+      window.location.href = "login.html";
+    }
   </script>
 </head>
 
@@ -37,9 +41,9 @@
         </label>
       </div>
       <div class="file-controls">
-        <button id="cloudSaveBtn">⏎ Save</button>
-        <button id="cloudLoadBtn">☰ Load Project</button>
-        <button id="loadBtn">⬆ Upload Image</button>
+        <button id="cloudSaveBtn" class="cloudSaveBtn">⏎ Save</button>
+        <button id="cloudLoadBtn" class="cloudLoadBtn">☰ Load Project</button>
+        <button id="loadBtn" class="loadBtn">⬆ Upload Image</button>
         <button id="uploadAnimationBtn" class="icon-btn"><img src="icons/upload.png" alt="Upload" class="btn-icon"> Upload Animation</button>
         <input type="file" id="animationUpload" accept="video/webm" style="display: none;">
         <button id="exportBtn" class="icon-btn"><img src="icons/export.png" alt="Export" class="btn-icon"> Export Video</button>
